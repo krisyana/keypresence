@@ -46,7 +46,7 @@ function Chart({ s }: { s: Summary }) {
   return (
     <section className="card stack-sm" aria-labelledby="chart-h">
       <h2 id="chart-h" style={{ margin: 0 }}>Check-ins per day</h2>
-      <p className="small muted" style={{ margin: 0 }}>Blue bars are check-ins, darker bars are late arrivals. Exact numbers are in the table below.</p>
+      <p className="small muted" style={{ margin: 0 }}>Teal bars are check-ins, darker bars are late arrivals. Exact numbers are in the table below.</p>
       <div className="bars" role="img" aria-label={summary + ': ' + s.byDay.map((d) => `${d.day} ${d.checkins} check-ins, ${d.late} late`).join('; ')}>
         {s.byDay.map((d) => (
           <div key={d.day} style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 2, height: '100%' }}>

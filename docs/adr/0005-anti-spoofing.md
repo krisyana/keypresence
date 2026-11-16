@@ -14,7 +14,7 @@ Inputs: site (lat, lng, radius, max accuracy, enforcement), the fix, the user's 
 | `LOW_ACCURACY` | `accuracy` missing, or `> site.max_accuracy_m` | reject if enforcement = reject, else flag |
 | `OUTSIDE_FENCE` | haversine distance > `radius_m` | reject if enforcement = reject, else flag; `off` ignores |
 | `STALE_FIX` | fix timestamp older than 30 s or more than 5 s in the future (vs server) | reject (a replayed old fix) |
-| `SPOOF_SIGNAL` | accuracy exactly 0 or an implausibly perfect integer < 1 m; identical lat/lng to 7 decimals as the previous event at another site; client-reported mock hint (`isMock` from a wrapper app) | flag, or reject when setting `spoofing_action = reject` |
+| `SPOOF_SIGNAL` | accuracy under 1 m (including exactly 0); latitude and longitude both rounded to 3 decimals or fewer (typical of a hand-typed fake position); client-reported mock hint (`isMock` from a wrapper app). A "same coordinates as last time" rule was considered and dropped: desktop browsers with IP/Wi-Fi positioning legitimately repeat coordinates and it would flag them daily | flag, or reject when setting `spoofing_action = reject` |
 | `IMPOSSIBLE_TRAVEL` | speed implied between the previous accepted event and this one > `impossible_speed_kmh` (default 200) and the gap < 12 h | flag, or reject per `spoofing_action` |
 | `QR_*` | token problems (see ADR-0004) | reject |
 
