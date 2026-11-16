@@ -57,12 +57,13 @@ function openPg(url: string): Db {
 }
 
 async function openPglite(dir?: string): Promise<Db> {
-  const lite = new PGlite(dir, { parsers: { [DATE_OID]: (v: string) => v, [INT8_OID]: (v: string) => Number(v) } });
+  const parsers = { [DATE_OID]: (v: string) => v, [INT8_OID]: (v: string) => Number(v) };
+  const lite = new PGlite(dir, { parsers });
   await lite.waitReady;
   const wrap = (c: Pick<PGlite, 'query' | 'exec'>, inTx: boolean): Db => ({
     kind: 'pglite',
     async query(sql, params) {
-      return (await c.query(sql, params as any[])).rows as any[];
+      return (await c.query(sql, params as any[], { parsers })).rows as any[];
     },
     async exec(sql) {
       await c.exec(sql);

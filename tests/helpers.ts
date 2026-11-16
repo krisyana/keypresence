@@ -13,6 +13,7 @@ export interface TestEnv {
   login(email: string): Promise<string>;
   call(cookie: string | null, method: string, path: string, body?: unknown): Promise<{ status: number; json: any; res: Response }>;
   siteToken(siteId: string): Promise<string>;
+  tokenForDay(siteId: string, day: string): Promise<string>;
   ids: { siteHq: string; siteWh: string; sari: string; budi: string; admin: string; office: string };
   close(): Promise<void>;
 }
@@ -60,6 +61,10 @@ export async function makeEnv(opts: { history?: boolean; planner?: Planner; star
     async siteToken(siteId) {
       const s = await one('SELECT id, qr_secret, qr_epoch FROM sites WHERE id = $1', [siteId]);
       return signToken(config.masterSecret, s, localParts(t, 'Asia/Jakarta').day);
+    },
+    async tokenForDay(siteId, day) {
+      const s = await one('SELECT id, qr_secret, qr_epoch FROM sites WHERE id = $1', [siteId]);
+      return signToken(config.masterSecret, s, day);
     },
     close: () => db.close(),
   };

@@ -57,7 +57,8 @@ export interface Refusal { refuse: string }
 const PII = /\b(e-?mail|phone|address|password|passwd|token|secret|salary|nik|ktp|coordinate|coordinates|latitude|longitude|lat\b|lng\b|gps|where (?:does|do|is|was)|home|real name|full name|names?\b)/i;
 const INJECTION = /(ignore|disregard|forget)\b.{0,30}\b(previous|prior|above|rules|instructions)|system prompt|developer mode|jailbreak|reveal.{0,20}(prompt|instructions|secret)/i;
 const WRITE_SQL = /\b(drop|delete|truncate|insert|update|alter|grant|revoke|create|exec|execute|copy|select\s.+\sfrom|union)\b|;|--|\/\*/i;
-const WRITE_INTENT = /\b(approve|reject|override|rotate|deactivate|reset|change|edit|set|modify|remove)\b.*\b(record|check-?in|employee|site|shift|setting|password|qr)\b/i;
+const WRITE_VERBS = 'approve|reject|override|rotate|deactivate|activate|reset|change|edit|modify|remove|assign|send|export';
+const WRITE_INTENT = new RegExp(`^\\s*(please\\s+)?(${WRITE_VERBS}|set|update)\\b|\\b(${WRITE_VERBS}|set)\\b.*\\b(records?|check-?ins?|employees?|users?|sites?|shifts?|settings?|passwords?|qr|corrections?|sessions?)\\b`, 'i');
 
 /** Pre-filter on the raw question. Cosmetic safety: the whitelist and read-only transaction are the real guards. */
 export function screenQuestion(q: string): Refusal | null {
