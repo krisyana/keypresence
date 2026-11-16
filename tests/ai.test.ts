@@ -98,6 +98,16 @@ describe('read-only execution', () => {
     await expect(env.db.tx(async (t) => { await t.exec('SET TRANSACTION READ ONLY'); await t.exec("UPDATE users SET name = 'x'"); })).rejects.toThrow(/read-only/i);
     expect((await env.db.query<any>("SELECT count(*)::int AS n FROM users WHERE name = 'x'"))[0].n).toBe(0);
   });
+  it('the executor\'s own transaction rejects a write smuggled into it (and nothing changes)', async () => {
+    // Wrap the db so that every query inside a transaction is preceded by a write. If executePlan did not
+    // open its transaction READ ONLY, the write would succeed.
+    const smuggling = {
+      ...env.db,
+      tx: <T,>(fn: (d: any) => Promise<T>) => env.db.tx((t) => fn({ ...t, query: async (sql: string, p?: unknown[]) => { await t.query("UPDATE users SET name = 'pwned'"); return t.query(sql, p); } })),
+    };
+    await expect(executePlan(smuggling as any, env.deps.config.masterSecret, { metric: 'late', groupBy: 'none', from: '2026-11-01', to: '2026-11-16' })).rejects.toThrow(/read-only/i);
+    expect((await env.db.query<any>("SELECT count(*)::int AS n FROM users WHERE name = 'pwned'"))[0].n).toBe(0);
+  });
   it('executePlan leaves data unchanged', async () => {
     const before = JSON.stringify(await env.db.query('SELECT count(*)::int AS n FROM checkins'));
     await executePlan(env.db, env.deps.config.masterSecret, { metric: 'late', groupBy: 'employee', from: '2026-11-01', to: '2026-11-16' });
@@ -146,6 +156,20 @@ describe('answers', () => {
     const rows = await env.db.query<any>('SELECT outcome FROM ai_queries ORDER BY id DESC LIMIT 2');
     expect((await env.db.query<any>('SELECT count(*)::int AS n FROM ai_queries'))[0].n).toBe(before + 2);
     expect(rows.map((r) => r.outcome)).toEqual(['refused', 'answered']);
+  });
+});
+
+describe('output scanner is applied to real answers', () => {
+  it('redacts PII-looking text that reaches an answer through data (e.g. a site name)', async () => {
+    await env.db.query("INSERT INTO sites(name, lat, lng, radius_m, qr_secret) VALUES ('Annex ceo@corp.test', -6.3, 106.7, 50, 'x')");
+    const site = (await env.db.query<any>("SELECT id FROM sites WHERE name LIKE 'Annex%'"))[0].id;
+    await env.db.query("INSERT INTO checkins(user_id, site_id, kind, status, day, check_in_at, check_out_at) VALUES ($1,$2,'attendance','closed','2026-11-16','2026-11-16T02:00Z','2026-11-16T10:00Z')", [env.ids.sari, site]);
+    const r = await rulesAsk('check-ins by site on 2026-11-16');
+    expect(r.outcome).toBe('answered');
+    expect(JSON.stringify(r)).not.toContain('ceo@corp.test');
+    expect(r.redactions).toBeGreaterThan(0);
+    await env.db.query('DELETE FROM checkins WHERE site_id = $1', [site]);
+    await env.db.query('DELETE FROM sites WHERE id = $1', [site]);
   });
 });
 
