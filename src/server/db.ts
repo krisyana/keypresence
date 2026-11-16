@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import pg from 'pg';
 import { PGlite } from '@electric-sql/pglite';
@@ -57,6 +57,7 @@ function openPg(url: string): Db {
 }
 
 async function openPglite(dir?: string): Promise<Db> {
+  if (dir) await mkdir(dir, { recursive: true }); // PGlite only creates the last path segment
   const parsers = { [DATE_OID]: (v: string) => v, [INT8_OID]: (v: string) => Number(v) };
   const lite = new PGlite(dir, { parsers });
   await lite.waitReady;

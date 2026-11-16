@@ -70,7 +70,7 @@ All numbers are from this repository on one MacBook (macOS 27.2, Node 26.13, Pos
 
 | Claim | How to reproduce | Result |
 | --- | --- | --- |
-| Test count | `npm test` | **195 passed** in 10 files (also 195 passed on real PostgreSQL 17 with `npm run test:pg`) |
+| Test count | `npm test` | **196 passed** in 11 files (also 196 passed on real PostgreSQL 17 with `npm run test:pg`) |
 | End-to-end + accessibility | `npm run test:e2e` | **4 passed**: demo flow, dark/mobile layout, axe scan of 13 pages in light and dark with no serious or critical violations |
 | Guard mutation check | `bash scripts/mutation-check.sh` | **14 of 14** mutations caught |
 | Contrast | `tests/contrast.test.ts` | 15 text/background pairs at 4.5:1 or better in light, dark(auto) and dark(manual) |
