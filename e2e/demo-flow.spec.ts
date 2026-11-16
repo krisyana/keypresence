@@ -78,6 +78,6 @@ test('dark theme and mobile width render without horizontal scroll', async ({ br
   await page.goto('/login');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(14, 18, 23)');
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(12, 16, 21)');
   await ctx.close();
 });

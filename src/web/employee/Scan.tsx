@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import jsQR from 'jsqr';
 import { ApiError, api, qs } from '../api';
 import { useAuth } from '../auth';
 import { GeoError, getFix } from '../geo';
-import { Alert, Badge, Button, Field, Page, Spinner, flagLabel, fmtMinutes, fmtTime } from '../ui';
+import { Alert, Badge, Button, Field, Icon, Page, Skeleton, flagLabel, fmtMinutes, fmtTime, useToast } from '../ui';
+import { EmployeeStyles, KIND_ICON } from './bits';
 
 const KINDS: [string, string][] = [
-  ['attendance', 'Attendance (my work day)'],
-  ['visitor', 'Visitor (someone visiting)'],
+  ['attendance', 'Attendance'],
+  ['visitor', 'Visitor'],
   ['event', 'Event'],
-  ['asset', 'Asset or equipment'],
-  ['task', 'Task or job'],
+  ['asset', 'Asset'],
+  ['task', 'Task'],
 ];
 const RESOLVE_MSG: Record<string, string> = {
   expired: "This QR code is from a previous day. Ask for today's code.",
@@ -33,7 +34,7 @@ interface CheckResp {
 }
 type Result =
   | { t: 'done'; action: 'in' | 'out'; r: CheckResp }
-  | { t: 'rejected'; lines: string[] }
+  | { t: 'rejected'; lines: string[]; qr: boolean }
   | { t: 'consent' }
   | { t: 'error'; message: string };
 
@@ -41,8 +42,8 @@ export default function Scan() {
   const { token: urlToken } = useParams();
   const [search] = useSearchParams();
   const out = search.get('out');
-  if (!urlToken) return <Page title="Scan QR code"><Finder out={out} /></Page>;
-  return <Page title="Check in or out"><Check key={urlToken} token={urlToken} out={out} /></Page>;
+  if (!urlToken) return <Page title={out ? 'Scan to check out' : 'Scan QR code'}><EmployeeStyles /><Finder out={out} /></Page>;
+  return <Page title="Check in or out"><EmployeeStyles /><Check key={urlToken} token={urlToken} out={out} /></Page>;
 }
 
 /** Live camera scanner plus a paste/enter-link fallback. */
@@ -64,7 +65,7 @@ function Finder({ out }: { out: string | null }) {
     const stop = () => { stopped = true; cancelAnimationFrame(raf); stream?.getTracks().forEach((t) => t.stop()); stream = null; };
     (async () => {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setCamError('This browser cannot open the camera. Paste the link below instead.'); setStarting(false); return;
+        setCamError('This browser cannot open the camera.'); setStarting(false); return;
       }
       try {
         const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -94,9 +95,9 @@ function Finder({ out }: { out: string | null }) {
       } catch (e: any) {
         setStarting(false);
         setCamError(e?.name === 'NotAllowedError'
-          ? 'Camera permission was denied. Allow the camera for this site in your browser settings, or paste the link below.'
-          : e?.name === 'NotFoundError' ? 'No camera was found on this device. Paste the link below instead.'
-          : 'The camera could not be started. Paste the link below instead.');
+          ? 'Camera access was denied. Allow it in your browser settings.'
+          : e?.name === 'NotFoundError' ? 'No camera was found on this device.'
+          : 'The camera could not be started.');
       }
     })();
     return stop;
@@ -111,24 +112,30 @@ function Finder({ out }: { out: string | null }) {
 
   return (
     <div className="stack">
-      {out && <Alert kind="info">Scan the site QR code to check out.</Alert>}
-      {!camError && (
-        <div className="card stack-sm">
-          <video ref={videoRef} muted playsInline aria-label="Camera view for scanning the QR code" style={{ width: '100%', borderRadius: 8, background: 'var(--surface-2)', minHeight: 200 }} />
-          <canvas ref={canvasRef} hidden />
-          <p className="muted small" style={{ margin: 0 }} role="status">
-            {starting ? 'Starting camera…' : 'Point the camera at the QR code. It scans automatically.'}
-          </p>
+      {!camError ? (
+        <div className="stack-sm">
+          <div className="scan-frame">
+            <video ref={videoRef} muted playsInline aria-label="Camera view for scanning the QR code" />
+            <canvas ref={canvasRef} hidden />
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            {starting && <span className="scan-hint" role="status"><span className="spinner" aria-hidden="true" />Starting camera…</span>}
+          </div>
+          <p className="muted" style={{ textAlign: 'center' }}>Point the camera at the site QR code</p>
         </div>
+      ) : (
+        <Alert kind="warn">{camError}</Alert>
       )}
-      {camError && <Alert kind="warn">{camError}</Alert>}
-      <form className="card stack" onSubmit={submit}>
-        <Field label="Or paste the QR link" hint="Paste the link or code from the QR." error={pasteError || undefined}>
-          {(p) => <input type="text" inputMode="url" autoComplete="off" value={text} onChange={(e) => { setText(e.target.value); setPasteError(''); }} {...p} />}
-        </Field>
-        <Button type="submit" variant="primary">Continue</Button>
-      </form>
-      <Link to="/" className="btn">Back to home</Link>
+      <details key={camError ? 'open' : 'closed'} open={!!camError} className="card" style={{ padding: 0 }}>
+        <summary style={{ minHeight: 52, display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px', cursor: 'pointer', fontWeight: 600 }}>
+          <Icon name="qr" size={18} />Enter a code instead
+        </summary>
+        <form className="stack-sm" style={{ padding: '0 20px 20px' }} onSubmit={submit}>
+          <Field label="QR link or code" error={pasteError || undefined}>
+            {(p) => <input type="text" inputMode="url" autoComplete="off" value={text} onChange={(e) => { setText(e.target.value); setPasteError(''); }} {...p} />}
+          </Field>
+          <Button type="submit" variant="primary">Continue</Button>
+        </form>
+      </details>
     </div>
   );
 }
@@ -136,6 +143,7 @@ function Finder({ out }: { out: string | null }) {
 function Check({ token, out }: { token: string; out: string | null }) {
   const { me, refresh } = useAuth();
   const nav = useNavigate();
+  const toast = useToast();
   const [site, setSite] = useState<{ name: string } | null>(null);
   const [resolveErr, setResolveErr] = useState('');
   const [kind, setKind] = useState('attendance');
@@ -167,7 +175,7 @@ function Check({ token, out }: { token: string; out: string | null }) {
 
   if (!me) return null;
   if (!me.user.location_consent_at && !result) {
-    return <Alert kind="warn">Location consent is needed before you can check in. <Link to="/">Go to Home to review and agree.</Link></Alert>;
+    return <Alert kind="warn">Location consent is needed first. <Link to="/">Go to Home to agree.</Link></Alert>;
   }
 
   async function submit() {
@@ -190,6 +198,7 @@ function Check({ token, out }: { token: string; out: string | null }) {
         },
       });
       setResult({ t: 'done', action, r });
+      toast(`${action === 'in' ? 'Checked in' : 'Checked out'} · ${r.siteName}${r.outcome === 'flagged' ? ' (needs review)' : ''}`, r.outcome === 'flagged' ? 'info' : 'ok');
       await refresh();
     } catch (e: any) {
       setResult(toFailure(e));
@@ -197,49 +206,55 @@ function Check({ token, out }: { token: string; out: string | null }) {
   }
 
   const busy = phase !== 'idle';
+  const needsRef = kind !== 'attendance' && !outRec;
   return (
     <div className="stack">
       <div aria-live="polite" className="stack">
         {resolveErr && (
-          <>
-            <h2 ref={headRef} tabIndex={-1} style={{ margin: 0 }}>QR code problem</h2>
-            <Alert kind="bad">{resolveErr}</Alert>
-            <Link to={`/scan${qs({ out })}`} className="btn primary">Scan again</Link>
-          </>
+          <div className="card result bad">
+            <span className="result-icon bad"><Icon name="x" size={44} /></span>
+            <h2 ref={headRef} tabIndex={-1}>QR code problem</h2>
+            <p>{resolveErr}</p>
+            <div className="result-actions"><Link to={`/scan${qs({ out })}`} className="btn primary big">Scan again</Link></div>
+          </div>
         )}
-        {!site && !resolveErr && <Spinner label="Checking QR code" />}
-        {result && <ResultView result={result} tz={tz} headRef={headRef} onRetry={() => setResult(null)} />}
+        {!site && !resolveErr && <div className="card"><Skeleton lines={3} /></div>}
+        {result && <ResultView result={result} tz={tz} headRef={headRef} onRetry={() => (result.t === 'rejected' && result.qr ? nav(`/scan${qs({ out })}`) : void submit())} />}
       </div>
 
-      {site && result?.t !== 'done' && result?.t !== 'consent' && (
+      {site && !result && (
         <div className="card stack">
-          <div>
-            <div className="small muted">Site</div>
-            <h2 style={{ margin: 0 }}>{site.name}</h2>
+          <div className="stack-xs">
+            <span className="small muted row" style={{ gap: 6 }}><Icon name="pin" size={16} />Site</span>
+            <h2 style={{ fontSize: '1.6rem' }}>{site.name}</h2>
           </div>
-          <Field label="Kind of check-in">
-            {(p) => (
-              <select value={kind} disabled={!!outRec || busy} onChange={(e) => setKind(e.target.value)} {...p}>
-                {KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            )}
-          </Field>
-          <Field label={kind === 'visitor' ? 'Visitor name or reference' : 'Room / asset / task reference (optional)'}>
-            {(p) => <input type="text" maxLength={80} required={kind === 'visitor'} value={ref} disabled={!!outRec || busy} onChange={(e) => setRef(e.target.value)} {...p} />}
-          </Field>
-          {isOut && <Alert kind="info">You are checked in here{match?.site_name ? ` (${match.site_name})` : ''}. This will check you out.</Alert>}
-          {phase === 'locating' && <div className="row" role="status"><span className="spinner" aria-hidden="true" /> Getting your location…</div>}
-          {phase === 'sending' && <div className="row" role="status"><span className="spinner" aria-hidden="true" /> Sending…</div>}
-          {geoErr && (
-            <Alert kind="bad">{geoErr}</Alert>
+          {outRec ? (
+            <p className="muted">Checking out of {KINDS.find(([v]) => v === outRec.kind)?.[1] ?? outRec.kind}{outRec.subject_ref ? ` · ${outRec.subject_ref}` : ''}</p>
+          ) : (
+            <fieldset className="chips" disabled={busy}>
+              <legend className="sr-only">Type</legend>
+              {KINDS.map(([v, l]) => (
+                <label key={v} className="chip">
+                  <input type="radio" name="kind" value={v} checked={kind === v} onChange={() => setKind(v)} />
+                  <Icon name={KIND_ICON[v] ?? 'clock'} size={22} />{l}
+                </label>
+              ))}
+            </fieldset>
           )}
+          {needsRef && (
+            <Field label={kind === 'visitor' ? 'Visitor name or reference' : 'Reference (optional)'}>
+              {(p) => <input type="text" maxLength={80} required={kind === 'visitor'} value={ref} disabled={busy} onChange={(e) => setRef(e.target.value)} {...p} />}
+            </Field>
+          )}
+          {isOut && !outRec && <Badge kind="info" dot>Checked in here, this will check you out</Badge>}
+          {geoErr && <Alert kind="bad">{geoErr}</Alert>}
+          <div role="status" className="sr-only">{phase === 'locating' ? 'Getting your location' : phase === 'sending' ? 'Sending' : ''}</div>
           <Button variant="primary" size="big" busy={busy} onClick={submit}>
-            {geoErr && !busy ? 'Try again' : isOut ? 'Check out' : 'Check in'}
+            {phase === 'locating' ? 'Locating…' : phase === 'sending' ? 'Sending…' : geoErr ? 'Try again' : isOut ? 'Check out' : 'Check in'}
           </Button>
-          <p className="small muted" style={{ margin: 0 }}>Your location is read once, when you press the button.</p>
         </div>
       )}
-      {!result && <Button onClick={() => nav('/')}>Cancel</Button>}
+      {!result && site && <Button onClick={() => nav('/')}>Cancel</Button>}
     </div>
   );
 }
@@ -247,14 +262,13 @@ function Check({ token, out }: { token: string; out: string | null }) {
 function toFailure(e: any): Result {
   if (e instanceof ApiError) {
     if (e.status === 403 && e.code === 'CONSENT_REQUIRED') return { t: 'consent' };
-    if (e.status === 422) return { t: 'rejected', lines: explain(e.data) };
+    if (e.status === 422) return { t: 'rejected', lines: explain(e.data), qr: ((e.data?.reasons ?? []) as string[]).some((r) => r.startsWith('QR_')) };
     if (e.status === 409) return { t: 'error', message: e.message };
   }
   return { t: 'error', message: e?.message ?? 'Something went wrong. Try again.' };
 }
 
 const fmtM = (n: number) => Math.round(n).toLocaleString('en-GB');
-
 function explain(d: any): string[] {
   const reasons: string[] = d?.reasons ?? [];
   const lines: string[] = [];
@@ -272,58 +286,53 @@ function explain(d: any): string[] {
 }
 
 function ResultView({ result, tz, headRef, onRetry }: { result: Result; tz: string; headRef: React.RefObject<HTMLHeadingElement | null>; onRetry: () => void }) {
-  const links = (
-    <div className="row">
-      <Link to="/" className="btn primary">Back to home</Link>
-      <Link to="/history" className="btn">View history</Link>
-    </div>
-  );
   if (result.t === 'done') {
     const { r, action } = result;
     const flagged = r.outcome === 'flagged';
     const c = r.checkin;
+    const tone = flagged ? 'warn' : 'ok';
     const when = fmtTime(action === 'in' ? c.check_in_at : c.check_out_at, tz);
+    const rows: [string, string][] = [];
+    if (action === 'out') rows.push(['Worked', fmtMinutes(c.work_minutes)]);
+    if (c.late_minutes) rows.push(['Late', `${c.late_minutes} min`]);
+    if (action === 'out' && c.overtime_minutes) rows.push(['Overtime', `${c.overtime_minutes} min`]);
     return (
-      <div className="stack">
-        <Alert kind={flagged ? 'warn' : 'ok'}>
-          <h2 ref={headRef} tabIndex={-1} style={{ margin: 0 }}>
-            {action === 'in' ? 'Checked in' : 'Checked out'} at {r.siteName} · {when}
-          </h2>
-          {flagged && (
-            <div className="stack-sm" style={{ marginTop: '0.5rem' }}>
-              <div>Accepted, but marked for HR review:</div>
-              <div className="row">{r.reasons.map((x) => <Badge key={x} kind="warn">{flagLabel(x)}</Badge>)}</div>
-            </div>
-          )}
-          {action === 'out' && (
-            <p style={{ margin: '0.5rem 0 0' }}>
-              Worked {fmtMinutes(c.work_minutes)}
-              {c.late_minutes ? ` · Late ${c.late_minutes} min` : ''}
-              {c.overtime_minutes ? ` · Overtime ${c.overtime_minutes} min` : ''}
-            </p>
-          )}
-        </Alert>
-        {links}
+      <div className={`card result ${tone}`}>
+        <span className={`result-icon ${tone}`}><Icon name={flagged ? 'alert' : 'check'} size={48} /></span>
+        <h2 ref={headRef} tabIndex={-1}>{action === 'in' ? 'Checked in' : 'Checked out'} at {r.siteName} · {when}</h2>
+        {flagged && (
+          <>
+            <p>Saved, marked for HR review.</p>
+            <div className="row">{r.reasons.map((x) => <Badge key={x} kind="warn">{flagLabel(x)}</Badge>)}</div>
+          </>
+        )}
+        {rows.length > 0 && <dl className="kv">{rows.map(([k, v]) => <Fragment key={k}><dt>{k}</dt><dd>{v}</dd></Fragment>)}</dl>}
+        <div className="result-actions">
+          <Link to="/" className="btn primary big">Done</Link>
+          <Link to="/history" className="btn">View history</Link>
+        </div>
       </div>
     );
   }
   if (result.t === 'consent') {
     return (
-      <div className="stack">
-        <h2 ref={headRef} tabIndex={-1} style={{ margin: 0 }}>Consent needed</h2>
-        <Alert kind="warn">Location consent is required before checking in. <Link to="/">Go to Home to review and agree.</Link></Alert>
+      <div className="card result warn">
+        <span className="result-icon warn"><Icon name="shield" size={44} /></span>
+        <h2 ref={headRef} tabIndex={-1}>Consent needed</h2>
+        <p>Agree to location use on Home first.</p>
+        <div className="result-actions"><Link to="/" className="btn primary big">Go to Home</Link></div>
       </div>
     );
   }
   const lines = result.t === 'rejected' ? result.lines : [result.message];
   return (
-    <div className="stack">
-      <Alert kind="bad">
-        <h2 ref={headRef} tabIndex={-1} style={{ margin: 0 }}>{result.t === 'rejected' ? 'Not accepted' : 'Could not complete'}</h2>
-        <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>{lines.map((l) => <li key={l}>{l}</li>)}</ul>
-      </Alert>
-      <div className="row">
-        <Button variant="primary" onClick={onRetry}>Try again</Button>
+    <div className="card result bad">
+      <span className="result-icon bad"><Icon name="x" size={44} /></span>
+      <h2 ref={headRef} tabIndex={-1}>{result.t === 'rejected' ? 'Not accepted' : 'Could not complete'}</h2>
+      <p><strong>{lines[0]}</strong></p>
+      {lines.slice(1).map((l) => <p key={l} className="small">{l}</p>)}
+      <div className="result-actions">
+        <Button variant="primary" size="big" onClick={onRetry}>{result.t === 'rejected' && result.qr ? 'Scan again' : 'Try again'}</Button>
         <Link to="/" className="btn">Back to home</Link>
       </div>
     </div>

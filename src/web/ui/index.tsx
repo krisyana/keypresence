@@ -1,15 +1,24 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Icon, type IconName } from './icons';
+export { Icon } from './icons';
+export type { IconName } from './icons';
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return <span role="status" className="row"><span className="spinner" aria-hidden="true" /><span className="sr-only">{label}</span></span>;
 }
 
+const ALERT_ICON: Record<string, IconName> = { info: 'info', bad: 'alert', warn: 'alert', ok: 'check' };
 export function Alert({ kind = 'info', children }: { kind?: 'info' | 'bad' | 'ok' | 'warn'; children: ReactNode }) {
-  return <div className={`alert ${kind}`} role={kind === 'bad' ? 'alert' : 'status'}>{children}</div>;
+  return (
+    <div className={`alert ${kind}`} role={kind === 'bad' ? 'alert' : 'status'}>
+      <Icon name={ALERT_ICON[kind]!} size={20} className="alert-icon" />
+      <div className="alert-body">{children}</div>
+    </div>
+  );
 }
 
-export function Badge({ kind = 'info', children }: { kind?: 'info' | 'ok' | 'warn' | 'bad' | ''; children: ReactNode }) {
-  return <span className={`badge ${kind}`}>{children}</span>;
+export function Badge({ kind = 'info', dot, children }: { kind?: 'info' | 'ok' | 'warn' | 'bad' | ''; dot?: boolean; children: ReactNode }) {
+  return <span className={`badge ${kind}`}>{dot && <i className="dot" aria-hidden="true" />}{children}</span>;
 }
 
 export function Button({ variant, size, busy, children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'danger'; size?: 'sm' | 'big'; busy?: boolean }) {
@@ -44,23 +53,100 @@ export function Modal({ title, open, onClose, children }: { title: string; open:
   }, [open]);
   return (
     <dialog ref={ref} aria-label={title} onClose={onClose} onCancel={onClose}>
-      <h2>{title}</h2>
+      <div className="modal-head"><h2>{title}</h2><button type="button" className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" size={18} /></button></div>
       {open && children}
     </dialog>
   );
 }
 
-export function Empty({ children }: { children: ReactNode }) {
-  return <p className="muted" style={{ padding: '1rem', textAlign: 'center' }}>{children}</p>;
+export function Empty({ icon = 'inbox', title, children, action }: { icon?: IconName; title?: string; children?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="empty">
+      <span className="empty-icon"><Icon name={icon} size={26} /></span>
+      {title && <strong>{title}</strong>}
+      {children && <p className="muted">{children}</p>}
+      {action}
+    </div>
+  );
 }
 
-export function Page({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+export function Page({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
   useEffect(() => { document.title = `${title} · KeyPresence`; }, [title]);
   return (
-    <section className="stack">
-      <div className="row between"><h1 style={{ margin: 0 }}>{title}</h1><div className="row">{actions}</div></div>
+    <section className="page">
+      <header className="page-head">
+        <div>
+          <h1>{title}</h1>
+          {subtitle && <p className="muted page-sub">{subtitle}</p>}
+        </div>
+        {actions && <div className="row">{actions}</div>}
+      </header>
       {children}
     </section>
+  );
+}
+
+/** Surface with an optional heading row. Use instead of nesting a bare .card. */
+export function Card({ title, actions, flush, children }: { title?: string; actions?: ReactNode; flush?: boolean; children: ReactNode }) {
+  return (
+    <div className={`card${flush ? ' flush' : ''}`}>
+      {(title || actions) && <div className="card-head"><h2>{title}</h2><div className="row">{actions}</div></div>}
+      {children}
+    </div>
+  );
+}
+
+/** KPI tile: icon, big number, label, optional tone and link. */
+export function Stat({ icon, label, value, sub, tone, to }: { icon: IconName; label: string; value: ReactNode; sub?: ReactNode; tone?: 'ok' | 'warn' | 'bad'; to?: ReactNode }) {
+  return (
+    <div className={`stat ${tone ?? ''}`}>
+      <span className="stat-icon"><Icon name={icon} size={20} /></span>
+      <div className="stat-n">{value}</div>
+      <div className="stat-l">{label}</div>
+      {sub && <div className="stat-sub">{sub}</div>}
+      {to}
+    </div>
+  );
+}
+
+export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('');
+  const hue = [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
+  return <span className="avatar" aria-hidden="true" style={{ width: size, height: size, fontSize: size * 0.4, ['--h' as string]: hue }}>{initials}</span>;
+}
+
+export function Skeleton({ lines = 3 }: { lines?: number }) {
+  return <div className="skeleton" role="status" aria-label="Loading">{Array.from({ length: lines }, (_, i) => <span key={i} style={{ width: `${90 - i * 15}%` }} />)}</div>;
+}
+
+// ---- Toasts: transient confirmation for saves and background actions ----
+type ToastKind = 'ok' | 'bad' | 'info';
+interface ToastItem { id: number; kind: ToastKind; text: string }
+const ToastCtx = createContext<(text: string, kind?: ToastKind) => void>(() => {});
+export const useToast = () => useContext(ToastCtx);
+
+export function ToastProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<ToastItem[]>([]);
+  const seq = useRef(0);
+  const push = useCallback((text: string, kind: ToastKind = 'ok') => {
+    const id = ++seq.current;
+    setItems((x) => [...x.slice(-2), { id, kind, text }]);
+    setTimeout(() => setItems((x) => x.filter((t) => t.id !== id)), kind === 'bad' ? 7000 : 4000);
+  }, []);
+  const value = useMemo(() => push, [push]);
+  return (
+    <ToastCtx.Provider value={value}>
+      {children}
+      <div className="toasts" role="region" aria-label="Notifications" aria-live="polite">
+        {items.map((t) => (
+          <div key={t.id} className={`toast ${t.kind}`}>
+            <Icon name={t.kind === 'bad' ? 'alert' : t.kind === 'ok' ? 'check' : 'info'} size={18} />
+            <span>{t.text}</span>
+            <button className="toast-x" aria-label="Dismiss" onClick={() => setItems((x) => x.filter((i) => i.id !== t.id))}><Icon name="x" size={16} /></button>
+          </div>
+        ))}
+      </div>
+    </ToastCtx.Provider>
   );
 }
 

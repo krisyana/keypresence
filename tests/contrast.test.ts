@@ -24,7 +24,9 @@ const PAIRS: [string, string][] = [
   ['muted', 'bg'], ['muted', 'surface'], ['muted', 'surface-2'],
   ['accent-ink', 'accent'], ['accent', 'surface'], ['accent', 'bg'],
   ['accent-soft-ink', 'accent-soft'], ['danger-soft-ink', 'danger-soft'], ['warn-soft-ink', 'warn-soft'], ['ok-soft-ink', 'ok-soft'],
-  ['danger', 'surface'], ['danger', 'bg'],
+  ['danger', 'surface'], ['danger', 'bg'], ['surface', 'danger'],
+  ['side-ink', 'side-bg'], ['side-muted', 'side-bg'], ['side-active-ink', 'side-active'], ['side-ink', 'side-active'],
+  ['hero-ink', 'hero-from'], ['hero-ink', 'hero-to'], ['toast-ink', 'toast-bg'],
 ];
 
 describe.each([['light', light], ['dark (auto)', darkAuto], ['dark (manual)', darkManual]])('WCAG AA contrast, %s theme', (_n, theme) => {

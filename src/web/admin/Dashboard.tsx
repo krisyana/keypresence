@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../api';
 import { addDaysStr, todayIn } from '../tz';
-import { Alert, Badge, Button, Empty, Page, Spinner, flagLabel, fmtDateTime, fmtMinutes } from '../ui';
-import { A, Async, errMsg, fmtDist, useLoad, useOrgTz } from './shared';
+import { Alert, Badge, Button, Card, Empty, Icon, Page, Skeleton, Stat, flagLabel, fmtDateTime, fmtMinutes, useToast } from '../ui';
+import { A, Async, Segmented, errMsg, fmtDist, useLoad, useOrgTz } from './shared';
 
 interface Summary {
   from: string; to: string;
@@ -14,29 +14,24 @@ interface Summary {
 interface Attempt { id: string; at: string; action: string; kind: string; outcome: string; reasons: string[]; distance_m: number | null; accuracy_m: number | null; user_name: string; site_name: string | null }
 interface Anomaly { type: string; severity: 'info' | 'warn'; title: string; explanation: string }
 
-function Stat({ n, l, to }: { n: string | number; l: string; to?: string }) {
-  const body = <><div className="n">{n}</div><div className="l">{l}</div></>;
-  return <div className="stat">{to ? <Link to={to} style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}>{body}<span className="small">Review →</span></Link> : body}</div>;
-}
-
-function Stats({ s, title }: { s: Summary; title: string }) {
+function Stats({ s }: { s: Summary }) {
   const a = s.attendance;
   return (
-    <section className="stack-sm" aria-label={title}>
-      <h2 style={{ margin: 0 }}>{title}</h2>
+    <div className="stack">
       <div className="stats">
-        <Stat n={a.presentDays} l="Present (person-days)" />
-        <Stat n={`${a.lateCount} (${a.lateMinutes} min)`} l="Late arrivals (minutes)" />
-        <Stat n={a.absentDays} l="Absent" />
-        <Stat n={fmtMinutes(a.overtimeMinutes)} l="Overtime" />
-        <Stat n={a.flagged} l="Flagged records" />
-        <Stat n={a.autoClosed} l="Auto-closed" />
-        <Stat n={a.stillOpen} l="Still open" />
-        <Stat n={s.rejectedAttempts} l="Rejected attempts" />
-        <Stat n={s.pendingReviews} l="Pending reviews" to="/admin/records?review=pending" />
-        <Stat n={s.pendingCorrections} l="Pending corrections" to="/admin/corrections" />
+        <Stat icon="check" tone="ok" label="Present (person-days)" value={a.presentDays} />
+        <Stat icon="clock" tone="warn" label="Late arrivals" value={a.lateCount} sub={`${a.lateMinutes} min in total`} />
+        <Stat icon="user" label="Absent" value={a.absentDays} />
+        <Stat icon="inbox" tone={s.pendingReviews ? 'bad' : undefined} label="Needs review" value={s.pendingReviews} to={<Link to="/admin/records?review=pending">Review records</Link>} />
       </div>
-    </section>
+      <div className="stats stats-sm">
+        <Stat icon="bolt" label="Overtime" value={fmtMinutes(a.overtimeMinutes)} />
+        <Stat icon="flag" label="Flagged" value={a.flagged} />
+        <Stat icon="swap" label="Auto-closed" value={a.autoClosed} />
+        <Stat icon="shield" label="Rejected attempts" value={s.rejectedAttempts} />
+        <Stat icon="inbox" label="Pending corrections" value={s.pendingCorrections} to={<Link to="/admin/corrections">Open</Link>} />
+      </div>
+    </div>
   );
 }
 
@@ -44,90 +39,95 @@ function Chart({ s }: { s: Summary }) {
   const max = Math.max(1, ...s.byDay.map((d) => d.checkins));
   const summary = `Check-ins and late arrivals per day from ${s.from} to ${s.to}`;
   return (
-    <section className="card stack-sm" aria-labelledby="chart-h">
-      <h2 id="chart-h" style={{ margin: 0 }}>Check-ins per day</h2>
-      <p className="small muted" style={{ margin: 0 }}>Teal bars are check-ins, darker bars are late arrivals. Exact numbers are in the table below.</p>
-      <div className="bars" role="img" aria-label={summary + ': ' + s.byDay.map((d) => `${d.day} ${d.checkins} check-ins, ${d.late} late`).join('; ')}>
-        {s.byDay.map((d) => (
-          <div key={d.day} style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 2, height: '100%' }}>
-            <span title={`${d.day}: ${d.checkins} check-ins`} style={{ height: `${(d.checkins / max) * 100}%` }} />
-            <span className="late" title={`${d.day}: ${d.late} late`} style={{ height: `${(d.late / max) * 100}%` }} />
-          </div>
-        ))}
+    <Card title="Check-ins per day" actions={<div className="legend" aria-label="Legend"><span><i />Check-ins</span><span><i className="late" />Late arrivals</span></div>}>
+      <div className="stack-sm">
+        <div className="chart" role="img" aria-label={summary + ': ' + s.byDay.map((d) => `${d.day} ${d.checkins} check-ins, ${d.late} late`).join('; ')}>
+          {s.byDay.map((d) => (
+            <div key={d.day} className="chart-col" aria-hidden="true">
+              <span className="chart-n">{d.checkins}{d.late ? ` / ${d.late}` : ''}</span>
+              <div className="chart-bars">
+                <span title={`${d.day}: ${d.checkins} check-ins`} style={{ height: `${(d.checkins / max) * 100}%` }} />
+                <span className="late" title={`${d.day}: ${d.late} late`} style={{ height: `${(d.late / max) * 100}%` }} />
+              </div>
+              <span className="chart-x">{d.day.slice(5)}</span>
+            </div>
+          ))}
+        </div>
+        <details>
+          <summary className="small muted">Show as table</summary>
+          <div className="table-wrap"><table className="table-compact">
+            <caption className="sr-only">{summary}</caption>
+            <thead><tr><th scope="col">Day</th><th scope="col">Check-ins</th><th scope="col">Late</th><th scope="col">Absent</th></tr></thead>
+            <tbody>{s.byDay.map((d) => <tr key={d.day}><th scope="row" style={{ textTransform: 'none', background: 'none' }}>{d.day}</th><td>{d.checkins}</td><td>{d.late}</td><td>{d.absent}</td></tr>)}</tbody>
+          </table></div>
+        </details>
       </div>
-      <div className="row between small muted" aria-hidden="true"><span>{s.from}</span><span>{s.to}</span></div>
-      <details>
-        <summary>Show as table</summary>
-        <div className="table-wrap"><table>
-          <caption className="sr-only">{summary}</caption>
-          <thead><tr><th scope="col">Day</th><th scope="col">Check-ins</th><th scope="col">Late</th><th scope="col">Absent</th></tr></thead>
-          <tbody>{s.byDay.map((d) => <tr key={d.day}><th scope="row" style={{ textTransform: 'none', background: 'none' }}>{d.day}</th><td>{d.checkins}</td><td>{d.late}</td><td>{d.absent}</td></tr>)}</tbody>
-        </table></div>
-      </details>
-    </section>
+    </Card>
   );
 }
 
 export default function Dashboard() {
   const tz = useOrgTz();
+  const toast = useToast();
   const today = todayIn(tz);
   const from7 = addDaysStr(today, -6);
+  const [range, setRange] = useState<'today' | 'week'>('today');
   const day = useLoad<Summary>(`${A}/summary${qs({ from: today, to: today })}`);
   const week = useLoad<Summary>(`${A}/summary${qs({ from: from7, to: today })}`);
   const attempts = useLoad<{ items: Attempt[] }>(`${A}/attempts`);
   const anomalies = useLoad<{ items: Anomaly[] }>(`${A}/ai/anomalies`);
   const [running, setRunning] = useState(false);
-  const [jobs, setJobs] = useState<Record<string, unknown> | null>(null);
-  const [jobErr, setJobErr] = useState<string | null>(null);
 
   async function run() {
-    setRunning(true); setJobErr(null);
-    try { setJobs(await api(`${A}/jobs/run`, { method: 'POST', body: {} })); day.reload(); week.reload(); attempts.reload(); }
-    catch (e) { setJobErr(errMsg(e)); } finally { setRunning(false); }
+    setRunning(true);
+    try {
+      const jobs = await api<Record<string, unknown>>(`${A}/jobs/run`, { method: 'POST', body: {} });
+      const parts = Object.entries(jobs).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${String(v)}`);
+      toast(parts.length ? `Automation finished (${parts.join(', ')})` : 'Automation finished, nothing to do');
+      day.reload(); week.reload(); attempts.reload();
+    } catch (e) { toast(errMsg(e), 'bad'); } finally { setRunning(false); }
   }
 
+  const cur = range === 'today' ? day : week;
   return (
-    <Page title="Overview" actions={<Button onClick={() => void run()} busy={running}>Run automation now</Button>}>
-      {jobErr && <Alert kind="bad">{jobErr}</Alert>}
-      {jobs && (
-        <Alert kind="ok">
-          Automation finished: {Object.entries(jobs).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${String(v)}`).join(', ') || 'nothing to do'}.
-        </Alert>
-      )}
-      <Async loading={day.loading} error={day.error} hasData={!!day.data}>{day.data && <Stats s={day.data} title={`Today (${today})`} />}</Async>
-      <Async loading={week.loading} error={week.error} hasData={!!week.data}>
-        {week.data && <><Stats s={week.data} title={`Last 7 days (${from7} to ${today})`} /><Chart s={week.data} /></>}
-      </Async>
+    <Page title="Overview" subtitle="Attendance across all sites." actions={<Button onClick={() => void run()} busy={running}><Icon name="bolt" size={16} />Run automation now</Button>}>
+      <div className="section-head">
+        <h2>{range === 'today' ? <>Today <span className="muted small">({today})</span></> : <>Last 7 days <span className="muted small">({from7} to {today})</span></>}</h2>
+        <Segmented label="Time range" value={range} onChange={setRange} options={[{ value: 'today', label: 'Today' }, { value: 'week', label: 'Last 7 days' }]} />
+      </div>
+      <Async loading={cur.loading} error={cur.error} hasData={!!cur.data}>{cur.data && <Stats s={cur.data} />}</Async>
+      {week.data && <Chart s={week.data} />}
 
-      <section className="card flush" aria-labelledby="att-h">
-        <div style={{ padding: '1rem 1rem 0' }}><h2 id="att-h" style={{ margin: 0 }}>Recent rejected or flagged attempts</h2></div>
+      <Card title="Rejected or flagged attempts" flush actions={<Link to="/admin/records?flagged=1">All flagged records</Link>}>
         <Async loading={attempts.loading} error={attempts.error} hasData={!!attempts.data}>
-          {attempts.data && (attempts.data.items.length === 0 ? <Empty>No rejected or flagged attempts.</Empty> : (
+          {attempts.data && (attempts.data.items.length === 0 ? <Empty icon="shield" title="All clear">No rejected or flagged attempts.</Empty> : (
             <div className="table-wrap"><table>
               <caption className="sr-only">Recent rejected or flagged check-in attempts</caption>
               <thead><tr><th scope="col">When</th><th scope="col">Employee</th><th scope="col">Site</th><th scope="col">Action</th><th scope="col">Outcome</th><th scope="col">Reasons</th><th scope="col">Distance</th></tr></thead>
-              <tbody>{attempts.data.items.slice(0, 10).map((a) => (
+              <tbody>{attempts.data.items.slice(0, 8).map((a) => (
                 <tr key={a.id}>
-                  <td>{fmtDateTime(a.at, tz)}</td><td>{a.user_name}</td><td>{a.site_name ?? '–'}</td><td>{a.action}</td>
-                  <td><Badge kind={a.outcome === 'rejected' ? 'bad' : 'warn'}>{a.outcome}</Badge></td>
-                  <td>{(a.reasons ?? []).map((r) => <Badge key={r} kind="">{flagLabel(r)}</Badge>)}</td>
-                  <td>{fmtDist(a.distance_m)}</td>
+                  <td className="num-cell">{fmtDateTime(a.at, tz)}</td><td>{a.user_name}</td><td>{a.site_name ?? '–'}</td><td>{a.action}</td>
+                  <td><Badge dot kind={a.outcome === 'rejected' ? 'bad' : 'warn'}>{a.outcome}</Badge></td>
+                  <td><div className="badges">{(a.reasons ?? []).map((r) => <Badge key={r} kind="">{flagLabel(r)}</Badge>)}</div></td>
+                  <td className="num-cell">{fmtDist(a.distance_m)}</td>
                 </tr>))}</tbody>
             </table></div>
           ))}
         </Async>
-      </section>
+      </Card>
 
-      <section className="card stack-sm" aria-labelledby="an-h">
-        <div className="row between"><h2 id="an-h" style={{ margin: 0 }}>Anomalies worth a look</h2><Link to="/admin/ask">Ask the assistant →</Link></div>
-        {anomalies.loading && !anomalies.data ? <Spinner /> : anomalies.error ? <Alert kind="bad">{anomalies.error}</Alert> :
-          anomalies.data && anomalies.data.items.length === 0 ? <p className="muted" style={{ margin: 0 }}>Nothing unusual in the last 14 days.</p> :
-          <ul className="stack-sm" style={{ margin: 0, paddingLeft: '1.2rem' }}>
+      <Card title="Anomalies worth a look" actions={<Link to="/admin/ask">Ask the assistant</Link>}>
+        {anomalies.loading && !anomalies.data ? <Skeleton lines={2} /> : anomalies.error ? <Alert kind="bad">{anomalies.error}</Alert> :
+          anomalies.data && anomalies.data.items.length === 0 ? <p className="muted">Nothing unusual in the last 14 days.</p> :
+          <ul className="stack-sm" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {anomalies.data?.items.slice(0, 3).map((a, i) => (
-              <li key={i}><Badge kind={a.severity === 'warn' ? 'warn' : 'info'}>{a.severity === 'warn' ? 'Warning' : 'Info'}</Badge> <strong>{a.title}</strong><div className="small muted">{a.explanation}</div></li>
+              <li key={i} className={`sev ${a.severity}`}>
+                <Icon name={a.severity === 'warn' ? 'alert' : 'info'} size={20} />
+                <div><strong>{a.title}</strong> <Badge kind={a.severity === 'warn' ? 'warn' : 'info'}>{a.severity === 'warn' ? 'Warning' : 'Info'}</Badge><p className="small">{a.explanation}</p></div>
+              </li>
             ))}
           </ul>}
-      </section>
+      </Card>
     </Page>
   );
 }

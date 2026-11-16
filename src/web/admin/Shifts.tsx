@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { api } from '../api';
-import { Alert, Badge, Button, Empty, Field, Modal, Page } from '../ui';
-import { A, Async, DAY_NAMES, errMsg, useLoad, type Shift } from './shared';
+import { Alert, Badge, Button, Card, Empty, Field, Icon, Modal, Page, useToast } from '../ui';
+import { A, Async, DAY_NAMES, dayRange, errMsg, fieldErrors, useLoad, type Shift } from './shared';
 
 const num = (v: string) => (v === '' ? NaN : Number(v));
 
-function ShiftForm({ shift, onClose, onSaved }: { shift: Shift | null; onClose: () => void; onSaved: () => void }) {
+function ShiftForm({ shift, onClose, onSaved }: { shift: Shift | null; onClose: () => void; onSaved: (name: string, created: boolean) => void }) {
   const [name, setName] = useState(shift?.name ?? '');
   const [start, setStart] = useState(shift?.startTime ?? '09:00');
   const [end, setEnd] = useState(shift?.endTime ?? '17:00');
@@ -16,30 +16,31 @@ function ShiftForm({ shift, onClose, onSaved }: { shift: Shift | null; onClose: 
   const [active, setActive] = useState(shift?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [fe, setFe] = useState<Record<string, string>>({});
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    setErr(null);
+    setErr(null); setFe({});
     if (days.length === 0) { setErr('Pick at least one work day.'); return; }
-    if (end <= start) { setErr('End time must be after start time. Overnight shifts are not supported.'); return; }
+    if (end <= start) { setFe({ endTime: 'Must be after the start. Overnight shifts are not supported.' }); return; }
     setBusy(true);
     const body = { name, startTime: start, endTime: end, graceMinutes: num(grace), overtimeAfterMinutes: num(ot), autoCloseAfterMinutes: num(auto), workDays: [...days].sort(), active };
     try {
       await api(shift ? `${A}/shifts/${shift.id}` : `${A}/shifts`, { method: shift ? 'PATCH' : 'POST', body });
-      onSaved();
-    } catch (x) { setErr(errMsg(x)); } finally { setBusy(false); }
+      onSaved(name, !shift);
+    } catch (x) { const f = fieldErrors(x); setFe(f); setErr(Object.keys(f).length ? null : errMsg(x)); } finally { setBusy(false); }
   }
 
   return (
     <form className="stack" onSubmit={(e) => void submit(e)}>
       {err && <Alert kind="bad">{err}</Alert>}
-      <Field label="Name">{(p) => <input {...p} required minLength={2} maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />}</Field>
+      <Field label="Name" error={fe.name}>{(p) => <input {...p} required minLength={2} maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />}</Field>
       <div className="form-grid">
-        <Field label="Start (HH:MM)">{(p) => <input {...p} type="time" required value={start} onChange={(e) => setStart(e.target.value)} />}</Field>
-        <Field label="End (HH:MM)" hint="Overnight shifts (ending after midnight) are not supported yet.">{(p) => <input {...p} type="time" required value={end} onChange={(e) => setEnd(e.target.value)} />}</Field>
-        <Field label="Grace minutes" hint="Arrivals within this time of the start are not late.">{(p) => <input {...p} type="number" min={0} max={120} required value={grace} onChange={(e) => setGrace(e.target.value)} />}</Field>
-        <Field label="Overtime after (minutes)" hint="Minutes worked past the end before overtime counts.">{(p) => <input {...p} type="number" min={0} max={240} required value={ot} onChange={(e) => setOt(e.target.value)} />}</Field>
-        <Field label="Auto-close after (minutes)" hint="Open records are closed automatically this long after the shift end (15-720).">{(p) => <input {...p} type="number" min={15} max={720} required value={auto} onChange={(e) => setAuto(e.target.value)} />}</Field>
+        <Field label="Start" error={fe.startTime}>{(p) => <input {...p} type="time" required value={start} onChange={(e) => setStart(e.target.value)} />}</Field>
+        <Field label="End" error={fe.endTime}>{(p) => <input {...p} type="time" required value={end} onChange={(e) => setEnd(e.target.value)} />}</Field>
+        <Field label="Grace (minutes)" hint="Arrivals within this are not late." error={fe.graceMinutes}>{(p) => <input {...p} type="number" min={0} max={120} required value={grace} onChange={(e) => setGrace(e.target.value)} />}</Field>
+        <Field label="Overtime after (minutes)" hint="Minutes past the end before overtime counts." error={fe.overtimeAfterMinutes}>{(p) => <input {...p} type="number" min={0} max={240} required value={ot} onChange={(e) => setOt(e.target.value)} />}</Field>
+        <Field label="Auto-close after (minutes)" hint="Open records close this long after the shift ends." error={fe.autoCloseAfterMinutes}>{(p) => <input {...p} type="number" min={15} max={720} required value={auto} onChange={(e) => setAuto(e.target.value)} />}</Field>
       </div>
       <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="label" style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.3rem' }}>Work days</legend>
@@ -52,7 +53,7 @@ function ShiftForm({ shift, onClose, onSaved }: { shift: Shift | null; onClose: 
         </div>
       </fieldset>
       <label className="check"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active</label>
-      <div className="row between">
+      <div className="confirm-actions">
         <Button onClick={onClose}>Cancel</Button>
         <Button type="submit" variant="primary" busy={busy}>{shift ? 'Save changes' : 'Create shift'}</Button>
       </div>
@@ -61,29 +62,32 @@ function ShiftForm({ shift, onClose, onSaved }: { shift: Shift | null; onClose: 
 }
 
 export default function Shifts() {
+  const toast = useToast();
   const list = useLoad<{ items: Shift[] }>(`${A}/shifts`);
   const [editing, setEditing] = useState<{ shift: Shift | null } | null>(null);
-  const [saved, setSaved] = useState(false);
   return (
-    <Page title="Shifts" actions={<Button variant="primary" onClick={() => { setSaved(false); setEditing({ shift: null }); }}>Add shift</Button>}>
-      {saved && <Alert kind="ok">Saved.</Alert>}
+    <Page title="Shifts" subtitle="Working hours that decide who is late or on overtime." actions={<Button variant="primary" onClick={() => setEditing({ shift: null })}><Icon name="plus" size={16} />Add shift</Button>}>
       <Async loading={list.loading} error={list.error} hasData={!!list.data}>
-        {list.data && (list.data.items.length === 0 ? <Empty>No shifts yet. Add one, then assign people to it.</Empty> : (
-          <div className="card flush table-wrap"><table>
-            <caption className="sr-only">Shifts</caption>
-            <thead><tr><th scope="col">Name</th><th scope="col">Hours</th><th scope="col">Grace</th><th scope="col">Overtime after</th><th scope="col">Auto-close after</th><th scope="col">Work days</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-            <tbody>{list.data.items.map((s) => (
-              <tr key={s.id}>
-                <td>{s.name}</td><td>{s.startTime}–{s.endTime}</td><td>{s.graceMinutes} min</td><td>{s.overtimeAfterMinutes} min</td><td>{s.autoCloseAfterMinutes} min</td>
-                <td>{s.workDays.map((d) => DAY_NAMES[d - 1]).join(', ')}</td>
-                <td><Badge kind={s.active ? 'ok' : ''}>{s.active ? 'Active' : 'Inactive'}</Badge></td>
-                <td><Button size="sm" aria-label={`Edit ${s.name}`} onClick={() => { setSaved(false); setEditing({ shift: s }); }}>Edit</Button></td>
-              </tr>))}</tbody>
-          </table></div>
+        {list.data && (list.data.items.length === 0 ? (
+          <Card><Empty icon="clock" title="No shifts yet" action={<Button variant="primary" onClick={() => setEditing({ shift: null })}>Add shift</Button>}>Add a shift, then assign people to it.</Empty></Card>
+        ) : (
+          <Card flush>
+            <div className="table-wrap"><table>
+              <caption className="sr-only">Shifts</caption>
+              <thead><tr><th scope="col">Shift</th><th scope="col">Hours</th><th scope="col">Work days</th><th scope="col">Grace</th><th scope="col">Overtime after</th><th scope="col">Auto-close after</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+              <tbody>{list.data.items.map((s) => (
+                <tr key={s.id}>
+                  <td><strong>{s.name}</strong></td><td className="num-cell">{s.startTime}–{s.endTime}</td><td>{dayRange(s.workDays)}</td>
+                  <td className="num-cell">{s.graceMinutes} min</td><td className="num-cell">{s.overtimeAfterMinutes} min</td><td className="num-cell">{s.autoCloseAfterMinutes} min</td>
+                  <td><Badge dot kind={s.active ? 'ok' : ''}>{s.active ? 'Active' : 'Inactive'}</Badge></td>
+                  <td><Button size="sm" aria-label={`Edit ${s.name}`} onClick={() => setEditing({ shift: s })}>Edit</Button></td>
+                </tr>))}</tbody>
+            </table></div>
+          </Card>
         ))}
       </Async>
       <Modal title={editing?.shift ? 'Edit shift' : 'Add shift'} open={!!editing} onClose={() => setEditing(null)}>
-        {editing && <ShiftForm shift={editing.shift} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); setSaved(true); list.reload(); }} />}
+        {editing && <ShiftForm shift={editing.shift} onClose={() => setEditing(null)} onSaved={(n, created) => { setEditing(null); toast(created ? `Shift "${n}" created` : `Shift "${n}" saved`); list.reload(); }} />}
       </Modal>
     </Page>
   );
