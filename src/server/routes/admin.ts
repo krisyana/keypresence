@@ -240,7 +240,7 @@ export function adminRoutes(deps: Deps, planner?: Planner) {
                                  late_minutes, overtime_minutes, work_minutes, override_by, override_reason)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,ARRAY['ADMIN_OVERRIDE'],'reviewed',$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
           [b.userId, b.siteId, b.kind, b.subjectRef?.trim() || null, outAt ? 'closed' : 'open', localParts(inAt, tz).day, inAt, outAt, outAt ? 'admin' : null, shift?.id ?? null, m.lateMinutes, m.overtimeMinutes, m.workMinutes, actor(c), b.reason]);
-        await t.query('DELETE FROM absences WHERE user_id = $1 AND day = $2', [b.userId, localParts(inAt, tz).day]);
+        if (b.kind === 'attendance') await t.query('DELETE FROM absences WHERE user_id = $1 AND day = $2', [b.userId, localParts(inAt, tz).day]);
         await audit(t, actor(c), 'CHECKIN_OVERRIDE', 'checkin', row[0].id, { userId: b.userId, siteId: b.siteId, kind: b.kind, reason: b.reason });
         return row[0];
       });

@@ -232,3 +232,44 @@ describe('employee data isolation', () => {
     expect(JSON.stringify(mine.json)).not.toMatch(/in_lat|in_lng/);
   });
 });
+
+describe('review fixes', () => {
+  it('a second check-in the same day is not counted late again', async () => {
+    await wipe();
+    env.setNow('2026-11-16T02:30:00Z'); // 09:30, 30 min late
+    const first = await checkIn(sari, env.ids.siteHq, insideFix(env));
+    expect(first.json.checkin.late_minutes).toBe(30);
+    env.advance(3600_000);
+    await checkOut(sari, env.ids.siteHq, insideFix(env));
+    env.advance(3600_000);
+    const second = await checkIn(sari, env.ids.siteHq, insideFix(env));
+    expect(second.json.checkin.late_minutes).toBe(0);
+  });
+  it('a check-in after the absence job ran removes the absence', async () => {
+    await wipe();
+    env.setNow('2026-11-16T02:00:00Z');
+    await env.db.query("INSERT INTO absences(user_id, day) VALUES ($1, '2026-11-16')", [env.ids.sari]);
+    await checkIn(sari, env.ids.siteHq, insideFix(env));
+    expect((await env.db.query('SELECT 1 FROM absences WHERE user_id = $1', [env.ids.sari])).length).toBe(0);
+  });
+  it('CSV keeps negative coordinates intact', async () => {
+    await wipe();
+    await checkIn(sari, env.ids.siteHq, insideFix(env));
+    const csv = await (await env.call(admin, 'GET', '/api/admin/checkins/export.csv?coords=1')).res.text();
+    expect(csv).toMatch(/,-6\.17\d+,106\.82\d+/);
+    expect(csv).not.toContain("'-6.");
+  });
+  it('QR tokens are not written to request logs', async () => {
+    const token = await env.siteToken(env.ids.siteHq);
+    await env.app.request(`/s/${token}`);
+    expect(env.logs.join('\n')).not.toContain(token);
+  });
+  it('a spoofed X-Forwarded-For does not bypass the login limit', async () => {
+    let last = 0;
+    for (let i = 0; i < 12; i++) {
+      const r = await env.app.request('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forwarded-for': `10.0.0.${i}` }, body: JSON.stringify({ email: 'xff@keypresence.test', password: 'x'.repeat(12) }) });
+      last = r.status;
+    }
+    expect(last).toBe(429);
+  });
+});

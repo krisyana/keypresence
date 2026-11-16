@@ -28,7 +28,7 @@ export function requestLogger(log: (line: string) => void): MiddlewareHandler {
   return async (c, next) => {
     const t = performance.now();
     await next();
-    log(`${c.req.method} ${new URL(c.req.url).pathname} ${c.res.status} ${Math.round(performance.now() - t)}ms`);
+    log(`${c.req.method} ${new URL(c.req.url).pathname.replace(/^\/s\/.*/, '/s/[redacted]')} ${c.res.status} ${Math.round(performance.now() - t)}ms`);
   };
 }
 
@@ -55,7 +55,7 @@ export function csrf(allowedOrigin: string): MiddlewareHandler {
 export function csvCell(v: unknown): string {
   if (v === null || v === undefined) return '';
   let s = v instanceof Date ? v.toISOString() : Array.isArray(v) ? v.join('|') : String(v);
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`; // spreadsheet formula injection
+  if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`; // spreadsheet formula injection
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

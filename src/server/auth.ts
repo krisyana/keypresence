@@ -90,6 +90,7 @@ export function makeLimiter(max: number, windowMs: number, clock: () => Date) {
   return {
     take(key: string): boolean {
       const now = clock().getTime();
+      if (hits.size > 5000) for (const [k, v] of hits) if (v.every((t) => now - t >= windowMs)) hits.delete(k);
       const arr = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
       if (arr.length >= max) { hits.set(key, arr); return false; }
       arr.push(now); hits.set(key, arr);

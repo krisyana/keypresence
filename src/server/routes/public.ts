@@ -27,13 +27,15 @@ export function publicRoutes(deps: Deps) {
   const { db, clock, config } = deps;
   const app = new Hono<Env>();
   const limiter = makeLimiter(10, 10 * 60_000, clock);
+  const emailLimiter = makeLimiter(30, 10 * 60_000, clock); // not bypassable by spoofing a client IP
   const secure = config.appUrl.startsWith('https://');
   const auth = requireRole(db, clock);
 
   app.post('/auth/login', async (c) => {
     const { email, password } = await body(c, z.object({ email: z.string().max(200), password: z.string().max(200) }));
-    const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-    if (!limiter.take(`${email.toLowerCase()}|${ip}`)) throw new ApiError(429, 'RATE_LIMITED', 'Too many attempts. Try again later.');
+    const ip = (config.trustProxy ? c.req.header('x-forwarded-for')?.split(',').pop()?.trim() : null) ?? 'direct';
+    const e = email.toLowerCase().slice(0, 200);
+    if (!limiter.take(`${e}|${ip}`) || !emailLimiter.take(e)) throw new ApiError(429, 'RATE_LIMITED', 'Too many attempts. Try again later.');
     const rows = await db.query<any>('SELECT * FROM users WHERE lower(email) = lower($1) AND active', [email]);
     const u = rows[0];
     const ok = u ? await verifyPassword(password, u.password_hash) : (await dummyVerify(password), false);

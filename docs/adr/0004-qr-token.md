@@ -26,3 +26,6 @@ A QR printed on paper cannot change every 30 s. Daily rotation is the strongest 
 
 ## Known limits
 A photographed QR works for the rest of the day for anyone **who is also inside the geofence**. That is the accepted residual risk; the location checks and the audit trail are the second factor.
+
+## Note from review
+Because rotation also replaces the per-site secret, an old token fails the signature check and is reported as `bad_signature`; the separate `rotated` code (epoch mismatch with a valid signature) is defence in depth and effectively unreachable. Either way the scan is rejected.

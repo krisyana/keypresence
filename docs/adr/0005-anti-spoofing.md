@@ -28,3 +28,6 @@ Mock location apps that report plausible accuracy and move believably; VPN or Wi
 
 ## Testing
 Table-driven tests for each row, boundary tests exactly at the radius and at the accuracy threshold, and property-style tests that haversine is symmetric and that distance of a point to itself is 0.
+
+## Note from review
+`STALE_FIX` runs only when the client sends the fix timestamp, and that value is client-controlled, so it stops accidental replays (cached positions), not a deliberate attacker. Treat it as hygiene.

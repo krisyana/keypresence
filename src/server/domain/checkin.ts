@@ -94,7 +94,9 @@ export async function performCheck(deps: Deps, user: AuthUser, action: 'in' | 'o
   // 3. Persist
   if (action === 'in') {
     const shift = input.kind === 'attendance' ? await loadShift(db, user.shift_id) : null;
+    const today = localParts(now, settings.timezone).day;
     const m = computeMetrics(shift, now, null, settings.timezone);
+    if (input.kind === 'attendance' && (await db.query("SELECT 1 FROM checkins WHERE user_id = $1 AND kind = 'attendance' AND day = $2 LIMIT 1", [user.id, today])).length) m.lateMinutes = 0; // lateness belongs to the first arrival of the day
     try {
       const row = await db.tx(async (t) => {
         const r = await t.query(
@@ -104,6 +106,7 @@ export async function performCheck(deps: Deps, user: AuthUser, action: 'in' | 'o
           [user.id, site.id, input.kind, subjectRef, localParts(now, settings.timezone).day, now, input.lat, input.lng,
             input.accuracy ?? null, distance, ev.reasons, ev.reasons.length ? 'pending' : 'none', shift?.id ?? null, m.lateMinutes]);
         await recordAttempt(t, user.id, site.id, 'in', input.kind, outcome, ev.reasons, distance, input.accuracy, now);
+        if (input.kind === 'attendance') await t.query('DELETE FROM absences WHERE user_id = $1 AND day = $2', [user.id, today]); // a late arrival after the absence job ran
         return r[0];
       });
       return { outcome, reasons: ev.reasons, distanceM: distance, siteName: site.name, checkin: row };
@@ -158,6 +161,7 @@ export async function applyTimes(
             shift_id = coalesce(shift_id, $5), late_minutes = $6, overtime_minutes = $7, work_minutes = $8
       WHERE id = $1 RETURNING *`,
     [id, newIn, newOut, localParts(newIn, tz).day, shift?.id ?? null, m.lateMinutes, m.overtimeMinutes, m.workMinutes]);
+  if (cur.kind === 'attendance') await db.query('DELETE FROM absences WHERE user_id = $1 AND day = $2', [cur.user_id, localParts(newIn, tz).day]);
   return { before: cur, after: r[0] };
 }
 

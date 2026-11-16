@@ -1,6 +1,7 @@
 export interface Config {
   databaseUrl: string | null;
   pgliteDir: string;
+  trustProxy: boolean;
   appUrl: string;
   port: number;
   masterSecret: string;
@@ -21,6 +22,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     databaseUrl: env.DATABASE_URL || null,
+    trustProxy: env.TRUST_PROXY === '1',
     pgliteDir: env.PGLITE_DIR || '.data/pglite',
     appUrl: (env.APP_URL || 'http://localhost:5173').replace(/\/$/, ''),
     port: Number(env.PORT || 8787),
