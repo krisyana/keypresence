@@ -85,6 +85,7 @@ a { color: var(--accent); }
     padding-bottom: env(safe-area-inset-bottom); z-index: 10;
   }
   .tabbar a { flex: 1; text-align: center; padding: 0.75rem 0.25rem; min-height: 56px; text-decoration: none; color: var(--muted); font-size: 0.8rem; display: grid; place-items: center; }
+  .tabbar[aria-label='Admin'] a { flex: 0 0 auto; padding-inline: 1rem; }
   .tabbar a[aria-current='page'] { color: var(--accent); font-weight: 700; }
 }
 

@@ -62,7 +62,7 @@ function Shell({ admin }: { admin: boolean }) {
       )}
       {admin && (
         <nav className="tabbar" aria-label="Admin" style={{ overflowX: 'auto' }}>
-          {links.slice(0, 5).map(([to, label, end]) => <NavLink key={to} to={to} end={!!end}>{label}</NavLink>)}
+          {links.map(([to, label, end]) => <NavLink key={to} to={to} end={!!end}>{label}</NavLink>)}
         </nav>
       )}
     </div>
