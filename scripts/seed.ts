@@ -3,7 +3,7 @@ import { migrate, openDb } from '../src/server/db';
 import { seedDemo } from '../src/server/seed';
 
 const config = loadConfig();
-const db = await openDb(config.databaseUrl);
+const db = await openDb(config.databaseUrl, config.pgliteDir);
 await migrate(db);
 const [{ n }] = await db.query<{ n: number }>('SELECT count(*)::int AS n FROM users');
 if (n > 0 && !process.argv.includes('--reset')) {

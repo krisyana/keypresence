@@ -1,5 +1,6 @@
 export interface Config {
   databaseUrl: string | null;
+  pgliteDir: string;
   appUrl: string;
   port: number;
   masterSecret: string;
@@ -20,6 +21,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     databaseUrl: env.DATABASE_URL || null,
+    pgliteDir: env.PGLITE_DIR || '.data/pglite',
     appUrl: (env.APP_URL || 'http://localhost:5173').replace(/\/$/, ''),
     port: Number(env.PORT || 8787),
     masterSecret,

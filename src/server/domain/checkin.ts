@@ -86,7 +86,7 @@ export async function performCheck(deps: Deps, user: AuthUser, action: 'in' | 'o
   if (ev.decision === 'reject') {
     await recordAttempt(db, user.id, site.id, action, input.kind, 'rejected', ev.reasons, distance, input.accuracy, now);
     throw new ApiError(422, 'REJECTED', 'Check-in rejected by location rules.', {
-      reasons: ev.reasons, blocking: ev.blocking, distanceM: distance, radiusM: site.radius_m, accuracyM: input.accuracy ?? null,
+      reasons: ev.reasons, blocking: ev.blocking, distanceM: distance, radiusM: site.radius_m, maxAccuracyM: site.max_accuracy_m, accuracyM: input.accuracy ?? null,
     });
   }
   const outcome = ev.decision === 'flag' ? 'flagged' : 'accepted';

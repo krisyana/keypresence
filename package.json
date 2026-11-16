@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://localhost:5432/keypresence_test} vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "demo": "vite build && SEED_DEMO=1 NODE_ENV=development APP_URL=http://localhost:8787 PORT=8787 tsx --env-file-if-exists=.env src/server/index.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

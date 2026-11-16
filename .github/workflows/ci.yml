@@ -1,0 +1,26 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: keypresence_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Unit and API tests (embedded PGlite)
+        run: npm test
+      - name: Same suite on real PostgreSQL 17
+        run: npm run test:pg
+        env: { TEST_DATABASE_URL: "postgres://postgres:postgres@localhost:5432/keypresence_test" }
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end demo flow
+        run: npm run test:e2e
