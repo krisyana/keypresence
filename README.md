@@ -70,10 +70,10 @@ All numbers are from this repository on one MacBook (macOS 27.2, Node 26.13, Pos
 
 | Claim | How to reproduce | Result |
 | --- | --- | --- |
-| Test count | `npm test` | **220 passed** in 11 files (also 220 passed on real PostgreSQL 17 with `npm run test:pg`) |
+| Test count | `npm test` | **269 passed** in 11 files (also 269 passed on real PostgreSQL 17 with `npm run test:pg`) |
 | End-to-end + accessibility | `npm run test:e2e` | **4 passed**: demo flow, dark/mobile layout, axe scan of 13 pages in light and dark with no serious or critical violations |
 | Guard mutation check | `bash scripts/mutation-check.sh` | **14 of 14** mutations caught |
-| Contrast | `tests/contrast.test.ts` | 23 text/background pairs at 4.5:1 or better in light, dark(auto) and dark(manual) |
+| Contrast | `tests/contrast.test.ts` | 26 text pairs at 4.5:1 and 14 non-text pairs at 3:1 in light, dark(auto) and dark(manual); palette notes in [`docs/design-system.md`](docs/design-system.md) |
 | API latency, check-in / check-out | `npx tsx scripts/bench.ts` | PGlite p50 1.2 / 1.4 ms, p95 1.6 / 1.8 ms; Postgres 17 p50 0.9 / 0.9 ms, p95 1.9 / 1.9 ms (100 cycles, in-process, no network) |
 | Summary over 15 days / AI question | same | p50 2.0 / 0.9 ms (PGlite), 1.1 / 0.7 ms (Postgres) over a 14-day, 8-person seed |
 | Web bundle (gzip) | `npm run build` | see `npm run build` output (admin pages are lazy-loaded chunks) |

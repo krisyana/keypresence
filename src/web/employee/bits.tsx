@@ -17,7 +17,7 @@ const CSS = `
 .chip{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:76px;padding:10px 8px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface);cursor:pointer;font-weight:600;font-size:.85rem;text-align:center;transition:background .12s,border-color .12s}
 .chip:hover{background:var(--surface-2)}
 .chips .chip input[type=radio]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
-.chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft);color:var(--accent-soft-ink)}
+.chip:has(input:checked){border-color:var(--accent-edge);background:var(--accent-soft);color:var(--accent-soft-ink)}
 .chip:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:2px}
 .chip:has(input:disabled){opacity:.55;cursor:not-allowed}
 .scan-frame{position:relative;aspect-ratio:1/1;border-radius:24px;overflow:hidden;background:var(--hero-to);display:grid;place-items:center;color:var(--hero-ink)}
@@ -48,10 +48,10 @@ const CSS = `
 .note.unread{background:var(--accent-soft);border-color:transparent}
 .note .tl-icon{background:var(--surface-2);color:var(--muted)}
 .note.unread .tl-icon{background:var(--accent);color:var(--accent-ink)}
-.unread-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.unread-dot{width:9px;height:9px;border-radius:50%;background:var(--accent-edge);flex:none}
 .bullets{margin:0;padding:0;list-style:none;display:grid;gap:8px}
 .bullets li{display:flex;gap:10px;align-items:center}
-.bullets svg{color:var(--accent);flex:none}
+.bullets svg{color:var(--accent-text);flex:none}
 .plain-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 `;
 export function EmployeeStyles() { return <style>{CSS}</style>; }

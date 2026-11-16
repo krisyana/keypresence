@@ -22,11 +22,19 @@ export const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)]
 const PAIRS: [string, string][] = [
   ['text', 'bg'], ['text', 'surface'], ['text', 'surface-2'],
   ['muted', 'bg'], ['muted', 'surface'], ['muted', 'surface-2'],
-  ['accent-ink', 'accent'], ['accent', 'surface'], ['accent', 'bg'],
+  ['accent-ink', 'accent'], ['accent-text', 'surface'], ['accent-text', 'bg'], ['accent-text', 'surface-2'], ['accent-text', 'accent-soft'], ['text', 'accent-soft'],
   ['accent-soft-ink', 'accent-soft'], ['danger-soft-ink', 'danger-soft'], ['warn-soft-ink', 'warn-soft'], ['ok-soft-ink', 'ok-soft'],
   ['danger', 'surface'], ['danger', 'bg'], ['surface', 'danger'],
   ['side-ink', 'side-bg'], ['side-muted', 'side-bg'], ['side-active-ink', 'side-active'], ['side-ink', 'side-active'],
   ['hero-ink', 'hero-from'], ['hero-ink', 'hero-to'], ['toast-ink', 'toast-bg'],
+];
+
+// Non-text UI (WCAG 1.4.11): borders of controls, focus rings, chart marks, status icons. Need 3:1.
+const NON_TEXT: [string, string][] = [
+  ['input-border', 'surface'], ['input-border', 'bg'], ['accent-edge', 'surface'], ['accent-edge', 'bg'],
+  ['focus', 'surface'], ['focus', 'bg'], ['focus', 'surface-2'],
+  ['bar', 'surface'], ['bar-late', 'surface'],
+  ['accent', 'side-bg'], ['accent', 'side-active'], ['toast-ok', 'toast-bg'], ['toast-bad', 'toast-bg'],
 ];
 
 describe.each([['light', light], ['dark (auto)', darkAuto], ['dark (manual)', darkManual]])('WCAG AA contrast, %s theme', (_n, theme) => {
@@ -35,6 +43,21 @@ describe.each([['light', light], ['dark (auto)', darkAuto], ['dark (manual)', da
     expect(theme[bg], `missing token ${bg}`).toBeTruthy();
     expect(ratio(theme[fg]!, theme[bg]!)).toBeGreaterThanOrEqual(4.5);
   });
+});
+
+describe.each([['light', light], ['dark (auto)', darkAuto], ['dark (manual)', darkManual]])('WCAG 1.4.11 non-text contrast, %s theme', (_n, theme) => {
+  it.each(NON_TEXT)('%s against %s is at least 3:1', (fg, bg) => {
+    expect(theme[fg], `missing token ${fg}`).toBeTruthy();
+    expect(theme[bg], `missing token ${bg}`).toBeTruthy();
+    expect(ratio(theme[fg]!, theme[bg]!)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+it('uses the brand palette', () => {
+  expect(light['accent']).toBe('#cca43b');
+  expect(light['text']).toBe('#242f40');
+  expect(light['side-bg']).toBe('#242f40');
+  expect(light['border']).toBe('#e5e5e5');
 });
 
 it('the two dark definitions stay identical', () => {
