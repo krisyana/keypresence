@@ -38,8 +38,8 @@ const CSS = `
 .result .row{justify-content:center}
 .result-actions{display:grid;gap:8px;width:100%}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
-.day-label{position:sticky;top:60px;z-index:5;background:var(--bg);padding:8px 0;font-size:.8rem;font-weight:650;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
-.rec{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:16px;align-items:start}
+.day-label{position:sticky;top:60px;z-index:5;background:var(--bg);padding:8px 0;font-size:.95rem;font-weight:650;color:var(--text)}
+.rec{display:grid;grid-template-columns:1fr;gap:12px;padding:16px;align-items:start}
 .rec-body{display:grid;gap:8px;min-width:0}
 .rec-title{font-weight:650}
 .link-btn{background:none;border:0;color:var(--muted);font:inherit;font-size:.85rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:44px;padding:0 12px}

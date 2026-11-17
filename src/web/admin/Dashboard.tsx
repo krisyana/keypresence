@@ -168,7 +168,7 @@ export default function Dashboard() {
       <Card title="Rejected or flagged attempts" flush actions={<Link to="/admin/records?flagged=1">All flagged records</Link>}>
         <Async loading={attempts.loading} error={attempts.error} hasData={!!attempts.data}>
           {attempts.data && (attempts.data.items.length === 0 ? <Empty icon="shield" title="All clear">No rejected or flagged attempts.</Empty> : (
-            <div className="table-wrap"><table>
+            <div className="table-wrap"><table className="responsive">
               <caption className="sr-only">Recent rejected or flagged check-in attempts</caption>
               <thead><tr><th scope="col">When</th><th scope="col">Employee</th><th scope="col">Site</th><th scope="col">Action</th><th scope="col">Outcome</th><th scope="col">Reasons</th><th scope="col">Distance</th></tr></thead>
               <tbody>{attempts.data.items.slice(0, 8).map((a) => (

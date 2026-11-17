@@ -67,3 +67,7 @@ Same rules, applied page by page: controls on the page instead of a card toolbar
 - **Settings:** one card with each group as a heading plus a one-line explanation on the left and its fields on the right, instead of four cards with icon squares. The sticky save bar stays.
 - **Ask:** the answer is the serif moment (the same voice as the Overview and employee home); the question becomes a small "You asked" line instead of a chat bubble; anomalies are plain entries with a left rule instead of coloured boxes.
 - **Audit log:** search on the page, entries grouped by day, three columns (time and person, what happened, details).
+
+## Dark mode and phones
+
+`e2e/a11y.spec.ts` now runs axe and a sideways-scroll check on all 13 pages in four setups: light and dark, at 1280 px and 390 px. That check found two real bugs: a wide table stretched the whole page on phones (an absolutely positioned screen-reader label inside a scroll container escaped it), and the closed mobile drawer's shadow bled onto the left edge. Tables with class `responsive` collapse into stacked rows under 720 px, with inline labels from `data-label`. Employee History lost its all-caps day labels and icon tiles to match the rest.

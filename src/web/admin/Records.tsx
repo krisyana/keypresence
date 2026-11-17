@@ -209,7 +209,7 @@ export default function Records() {
         <Async loading={list.loading} error={list.error} hasData={!!list.data}>
           {list.data && (list.data.items.length === 0 ? <Empty icon="list" title="No records found" action={anyFilter ? <Button onClick={() => setSp({}, { replace: true })}>Clear filters</Button> : undefined}>{anyFilter ? 'No records match these filters.' : 'Check-ins will appear here.'}</Empty> : (
             <>
-              <div className="table-wrap"><table className="rec-table">
+              <div className="table-wrap"><table className="rec-table responsive">
                 <caption className="sr-only">Attendance and check-in records, grouped by day</caption>
                 <thead><tr><th scope="col">Employee</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Worked</th><th scope="col">Needs attention</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
                 {groups.map((g) => (
@@ -218,9 +218,9 @@ export default function Records() {
                     {g.rows.map((r) => (
                       <tr key={r.id}>
                         <td><PersonCell name={r.user_name} sub={r.site_name + (r.kind !== 'attendance' ? `, ${r.kind}${r.subject_ref ? ` ${r.subject_ref}` : ''}` : '')} /></td>
-                        <td className="num-cell">{fmtTime(r.check_in_at, tz)}{r.late_minutes ? <span className="cell-sub">{r.late_minutes} min late</span> : null}</td>
-                        <td className="num-cell">{r.check_out_at ? fmtTime(r.check_out_at, tz) : <Badge dot kind="ok">Open</Badge>}</td>
-                        <td className="num-cell">{fmtMinutes(r.work_minutes)}{r.overtime_minutes ? <span className="cell-sub">+{r.overtime_minutes} min overtime</span> : null}</td>
+                        <td className="num-cell" data-label="In">{fmtTime(r.check_in_at, tz)}{r.late_minutes ? <span className="cell-sub">{r.late_minutes} min late</span> : null}</td>
+                        <td className="num-cell" data-label="Out">{r.check_out_at ? fmtTime(r.check_out_at, tz) : <Badge dot kind="ok">Open</Badge>}</td>
+                        <td className="num-cell" data-label="Worked">{fmtMinutes(r.work_minutes)}{r.overtime_minutes ? <span className="cell-sub">+{r.overtime_minutes} min overtime</span> : null}</td>
                         <td><div className="badges">
                           {r.review_status === 'pending' && <Badge dot kind="warn">Needs review</Badge>}
                           <Flags r={r} />

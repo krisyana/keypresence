@@ -26,7 +26,7 @@ export default function Audit() {
             </div>
             <Card flush>
               {rows.length === 0 ? <Empty icon="shield" title="No matches" /> : (
-                <div className="table-wrap"><table className="table-compact rec-table">
+                <div className="table-wrap"><table className="table-compact rec-table responsive">
                   <caption className="sr-only">Audit log, grouped by day</caption>
                   <thead><tr><th scope="col">Time and person</th><th scope="col">What happened</th><th scope="col">Details</th></tr></thead>
                   {groups.map((g) => (

@@ -3,7 +3,7 @@
 ## Verified (commands in README "Measured")
 - `npm run typecheck`: clean.
 - `npm test`: 269 tests pass on PGlite. `npm run test:pg`: same suite passes on PostgreSQL 17.11.
-- `npm run test:e2e`: demo flow (admin creates site and geofence, shows QR; employee accepted inside the fence, rejected outside; check-out; admin sees records, summary, AI answer, CSV), dark/mobile layout, axe scan of 13 pages in light and dark (no serious/critical).
+- `npm run test:e2e`: demo flow (admin creates site and geofence, shows QR; employee accepted inside the fence, rejected outside; check-out; admin sees records, summary, AI answer, CSV), dark/mobile layout, axe scan and no-sideways-scroll check of 13 pages in light and dark at desktop (1280 px) and phone (390 px) width (no serious/critical).
 - `bash scripts/mutation-check.sh`: 14/14 guard mutations caught.
 - Concurrency (one open record under 8 simultaneous check-ins) passes on real PostgreSQL.
 - GitHub Actions `ci` workflow (typecheck, PGlite tests, Postgres 17 tests, e2e) passed on GitHub-hosted runners for commit 2eefb6b.

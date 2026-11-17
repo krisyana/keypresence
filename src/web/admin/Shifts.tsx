@@ -72,7 +72,7 @@ export default function Shifts() {
           <Card><Empty icon="clock" title="No shifts yet" action={<Button variant="primary" onClick={() => setEditing({ shift: null })}>Add shift</Button>}>Add a shift, then assign people to it.</Empty></Card>
         ) : (
           <Card flush>
-            <div className="table-wrap"><table>
+            <div className="table-wrap"><table className="responsive">
               <caption className="sr-only">Shifts</caption>
               <thead><tr><th scope="col">Shift</th><th scope="col">When</th><th scope="col">Rules</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>{list.data.items.map((s) => (

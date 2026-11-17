@@ -85,7 +85,7 @@ export default function Employees() {
             </div>
             <Card flush>
               {rows.length === 0 ? <Empty icon="users" title="No matches">Try a different search.</Empty> : (
-                <div className="table-wrap"><table>
+                <div className="table-wrap"><table className="responsive">
                   <caption className="sr-only">People</caption>
                   <thead><tr><th scope="col">Person</th><th scope="col">Shift</th><th scope="col">Needs attention</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
                   <tbody>{rows.map((e) => (

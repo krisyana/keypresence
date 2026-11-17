@@ -136,7 +136,7 @@ export default function Sites() {
               <Card><Empty icon="pin" title="No sites yet" action={<Button variant="primary" onClick={() => setEditing({ site: null })}>Add site</Button>}>Add your first site to generate a QR code.</Empty></Card>
             ) : (
               <Card flush>
-                <div className="table-wrap"><table>
+                <div className="table-wrap"><table className="responsive">
                   <caption className="sr-only">Sites and geofences</caption>
                   <thead><tr><th scope="col">Site</th><th scope="col">Check-in rule</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
                   <tbody>{list.data.items.map((s) => (

@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { isoToZonedInput, zonedInputToIso } from '../tz';
 import { Alert, Badge, Button, Empty, Field, Icon, Modal, Page, Skeleton, fmtDateTime, fmtMinutes, fmtTime, useToast } from '../ui';
-import { EmployeeStyles, KIND_LABEL, RecBadges, RecIcon, dayLabel, timeRange, type Rec } from './bits';
+import { EmployeeStyles, KIND_LABEL, RecBadges, dayLabel, timeRange, type Rec } from './bits';
 
 interface Corr {
   id: string; checkin_id: string; status: string; reason: string; created_at: string;
@@ -57,7 +57,6 @@ export default function History() {
           <ul className="plain-list">
             {g.recs.map((r) => (
               <li key={r.id} className="card rec">
-                <RecIcon kind={r.kind} />
                 <div className="rec-body">
                   <div className="row between" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
                     <div style={{ minWidth: 0 }}>

@@ -8,9 +8,10 @@ const PAGES: [string, string][] = [
   ['sari@keypresence.test', '/'], ['sari@keypresence.test', '/scan'], ['sari@keypresence.test', '/history'], ['sari@keypresence.test', '/notifications'],
 ];
 
-for (const scheme of ['light', 'dark'] as const) {
-  test(`axe: no serious or critical violations (${scheme})`, async ({ browser }) => {
-    const ctx = await browser.newContext({ colorScheme: scheme, permissions: [] });
+const SIZES = { desktop: { width: 1280, height: 800 }, mobile: { width: 390, height: 844 } } as const;
+for (const [scheme, size] of [['light', 'desktop'], ['dark', 'desktop'], ['light', 'mobile'], ['dark', 'mobile']] as const) {
+  test(`axe and no horizontal scroll: ${scheme}, ${size}`, async ({ browser }) => {
+    const ctx = await browser.newContext({ colorScheme: scheme, permissions: [], viewport: SIZES[size] });
     const page = await ctx.newPage();
     const problems: string[] = [];
     for (const who of ['admin@keypresence.test', 'sari@keypresence.test']) {
@@ -24,6 +25,8 @@ for (const scheme of ['light', 'dark'] as const) {
       for (const [email, path] of PAGES.filter(([e]) => e === who)) {
         await page.goto(path);
         await page.waitForLoadState('networkidle');
+        const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (over > 0) problems.push(`${email} ${path}: page scrolls sideways by ${over}px`);
         const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
         for (const v of r.violations.filter((x) => x.impact === 'serious' || x.impact === 'critical')) problems.push(`${email} ${path}: ${v.id} (${v.nodes.length}) ${v.help}`);
       }
