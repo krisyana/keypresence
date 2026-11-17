@@ -78,3 +78,25 @@ details.info > p { margin-top: 4px; color: var(--muted); font-size: 0.85rem; max
 .qr-center { display: grid; justify-items: center; gap: 12px; text-align: center; }
 .link-box { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; width: 100%; text-align: left; }
 .link-box code { overflow-wrap: anywhere; }
+
+/* Overview: a sentence first, then the roll call. One serif moment, everything else quiet. */
+.ov-lead { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 40px; align-items: start; padding-top: 8px; }
+.ov-headline { font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: clamp(1.9rem, 3.4vw, 2.8rem); line-height: 1.12; font-weight: 600; letter-spacing: -0.015em; max-width: 18ch; text-wrap: balance; }
+.ov-rest { font-size: 1.15rem; margin-top: 12px; color: var(--text); max-width: 40ch; }
+.ov-also { margin-top: 16px; }
+.ov-tasks { border-left: 3px solid var(--accent-edge); padding-left: 20px; display: grid; gap: 12px; }
+.ov-tasks h2 { font-size: 1rem; }
+.ov-tasks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.ov-tasks li { display: grid; grid-template-columns: 2.2rem 1fr auto; gap: 8px; align-items: center; padding: 6px 0; }
+.ov-count { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+@media (max-width: 800px) { .ov-lead { grid-template-columns: 1fr; gap: 24px; } .ov-tasks { padding-left: 16px; } }
+
+.roll section + section { border-top: 1px solid var(--border); }
+.roll-h { font-size: 0.95rem; padding: 14px 24px 6px; }
+.roll ul { margin: 0; padding: 0; list-style: none; }
+.roll-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(0, 1fr) minmax(190px, 1.1fr); gap: 16px; align-items: center; padding: 10px 24px; transition: background 0.12s; }
+@media (hover: hover) { .roll-row:hover { background: var(--surface-2); } }
+.roll-row.waiting .cell-person strong { font-weight: 500; }
+.roll-state { display: flex; gap: 6px; flex-wrap: wrap; }
+.roll-time { text-align: right; display: grid; justify-items: end; }
+@media (max-width: 720px) { .roll-row { grid-template-columns: 1fr auto; } .roll-state { grid-column: 1 / -1; order: 3; } .roll-h, .roll-row { padding-left: 16px; padding-right: 16px; } }

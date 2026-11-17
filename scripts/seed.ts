@@ -12,7 +12,7 @@ if (n > 0 && !process.argv.includes('--reset')) {
   if (n > 0) {
     await db.exec('TRUNCATE users, shifts, sites, settings, audit_log, ai_queries, job_runs, daily_summaries, attempts RESTART IDENTITY CASCADE');
   }
-  const r = await seedDemo({ db, config, clock: () => new Date() });
+  const r = await seedDemo({ db, config, clock: () => new Date() }, { today: true });
   console.log(`Seeded demo data.\n  admin:    ${r.adminEmail}\n  employee: ${r.employees[0]}\n  password: ${r.password}  (fictional, demo only)`);
 }
 await db.close();

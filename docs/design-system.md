@@ -35,3 +35,13 @@ Not verified: colour-blindness simulation, forced-colors/high-contrast mode, and
 ## Buttons and dialogs
 
 `Button` and `Modal` wrap `@kit/ui`'s `Button` and `Dialog` (see `vendor/kit-ui/README.md`). The kit gives `aria-busy` buttons that stay focusable and ignore clicks while busy, and a native `<dialog>` labelled by its title with backdrop-click close. Variants: primary (gold fill), secondary, ghost, danger (outline); sizes: default, sm, big. Hover, pressed, busy and focus states are defined in `theme.css`.
+
+## Admin overview: design plan
+
+Written with the `frontend-design` and `emil-design-eng` skills (installed in `.claude/skills/`, both plain markdown). Their review of the old page: four rounded KPI cards with tinted icon squares, a second row of five small ones and a bar chart is the "SaaS card kit" default.
+
+- **Subject and job:** an office admin opens it at start of day and needs three answers fast: who is in, who is late, what needs a decision.
+- **Layout:** a one-sentence summary first (the single serif moment, system serif stack so no web font is loaded), "Waiting for you" beside it as a short list of real actions, then the roll call as the main object: people grouped by state (here now, not in yet, left), late or review-pending people first. The 7-day chart, flagged attempts and anomalies stay below, quiet.
+- **Removed:** nine stat tiles, the Today / Last 7 days toggle, icon-in-square decoration.
+- **Motion:** none added. Press feedback on buttons only; hover is gated behind `(hover: hover)`.
+- **Limit:** there is no leave model, so someone with no check-in is "Not in yet", never "Absent", and a weekend shows everyone as not in.

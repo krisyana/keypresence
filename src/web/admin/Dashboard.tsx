@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, qs } from '../api';
 import { addDaysStr, todayIn } from '../tz';
-import { Alert, Badge, Button, Card, Empty, Icon, Page, Skeleton, Stat, flagLabel, fmtDateTime, fmtMinutes, useToast } from '../ui';
-import { A, Async, Segmented, errMsg, fmtDist, useLoad, useOrgTz } from './shared';
+import { Alert, Badge, Button, Card, Empty, Icon, Page, Skeleton, flagLabel, fmtDateTime, fmtMinutes, fmtTime, useToast } from '../ui';
+import { A, Async, PersonCell, errMsg, fmtDist, useLoad, useOrgTz, type Employee } from './shared';
 
 interface Summary {
   from: string; to: string;
@@ -14,24 +14,92 @@ interface Summary {
 interface Attempt { id: string; at: string; action: string; kind: string; outcome: string; reasons: string[]; distance_m: number | null; accuracy_m: number | null; user_name: string; site_name: string | null }
 interface Anomaly { type: string; severity: 'info' | 'warn'; title: string; explanation: string }
 
-function Stats({ s }: { s: Summary }) {
+interface Rec { id: string; user_id: string; kind: string; check_in_at: string; check_out_at: string | null; late_minutes: number | null; work_minutes: number | null; in_flags: string[]; out_flags: string[]; review_status: string; site_name: string }
+type Presence = 'in' | 'out' | 'waiting';
+interface Row { emp: Employee; state: Presence; rec: Rec | null }
+
+/** One row per active employee, from today's attendance records. No leave model exists, so "not in yet" is all we can say. */
+function buildRoster(emps: Employee[], recs: Rec[]): Row[] {
+  return emps.filter((e) => e.active && e.role === 'employee').map((emp) => {
+    const mine = recs.filter((r) => r.user_id === emp.id && r.kind === 'attendance').sort((x, y) => y.check_in_at.localeCompare(x.check_in_at));
+    const rec = mine[0] ?? null;
+    return { emp, rec, state: !rec ? 'waiting' : rec.check_out_at ? 'out' : 'in' } as Row;
+  });
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function Lead({ rows, s }: { rows: Row[]; s: Summary }) {
+  const present = rows.filter((r) => r.state !== 'waiting').length;
+  const late = rows.filter((r) => (r.rec?.late_minutes ?? 0) > 0).length;
+  const waiting = rows.length - present;
+  const headline = rows.length === 0 ? 'No employees yet.' : present === 0 ? 'Nobody has checked in yet.' : `${present} of ${rows.length} have checked in.`;
+  const rest = [late ? `${plural(late, 'person', 'people')} arrived late.` : null, waiting && present ? `${waiting} not in yet.` : null, !late && present ? 'Nobody was late.' : null].filter(Boolean).join(' ');
+  const tasks = [
+    { n: s.pendingReviews, text: s.pendingReviews === 1 ? 'record to review' : 'records to review', to: '/admin/records?review=pending', cta: 'Review' },
+    { n: s.pendingCorrections, text: s.pendingCorrections === 1 ? 'correction to decide' : 'corrections to decide', to: '/admin/corrections', cta: 'Decide' },
+    { n: s.rejectedAttempts, text: s.rejectedAttempts === 1 ? 'rejected attempt today' : 'rejected attempts today', to: '/admin/records?flagged=1', cta: 'Look' },
+  ].filter((t) => t.n > 0);
   const a = s.attendance;
   return (
-    <div className="stack">
-      <div className="stats">
-        <Stat icon="check" tone="ok" label="Present (person-days)" value={a.presentDays} />
-        <Stat icon="clock" tone="warn" label="Late arrivals" value={a.lateCount} sub={`${a.lateMinutes} min in total`} />
-        <Stat icon="user" label="Absent" value={a.absentDays} />
-        <Stat icon="inbox" tone={s.pendingReviews ? 'bad' : undefined} label="Needs review" value={s.pendingReviews} to={<Link to="/admin/records?review=pending">Review records</Link>} />
+    <div className="ov-lead">
+      <div className="ov-sentence">
+        <p className="ov-headline">{headline}</p>
+        {rest && <p className="ov-rest">{rest}</p>}
+        <p className="ov-also small muted">Overtime {fmtMinutes(a.overtimeMinutes)}. {plural(a.flagged, 'flagged record', 'flagged records')}. {plural(a.autoClosed, 'auto-closed record', 'auto-closed records')}.</p>
       </div>
-      <div className="stats stats-sm">
-        <Stat icon="bolt" label="Overtime" value={fmtMinutes(a.overtimeMinutes)} />
-        <Stat icon="flag" label="Flagged" value={a.flagged} />
-        <Stat icon="swap" label="Auto-closed" value={a.autoClosed} />
-        <Stat icon="shield" label="Rejected attempts" value={s.rejectedAttempts} />
-        <Stat icon="inbox" label="Pending corrections" value={s.pendingCorrections} to={<Link to="/admin/corrections">Open</Link>} />
-      </div>
+      <section className="ov-tasks" aria-label="Waiting for you">
+        <h2>Waiting for you</h2>
+        {tasks.length === 0 ? <p className="muted">Nothing needs a decision.</p> : (
+          <ul>{tasks.map((t) => (
+            <li key={t.to}><span className="num ov-count">{t.n}</span><span>{t.text}</span><Link className="btn sm" to={t.to}>{t.cta}</Link></li>
+          ))}</ul>
+        )}
+      </section>
     </div>
+  );
+}
+
+const GROUPS: { state: Presence; title: string }[] = [
+  { state: 'in', title: 'Here now' }, { state: 'waiting', title: 'Not in yet' }, { state: 'out', title: 'Left for the day' },
+];
+
+function RollCall({ rows, tz, today }: { rows: Row[]; tz: string; today: string }) {
+  const label = new Intl.DateTimeFormat('en-GB', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(today + 'T12:00:00Z'));
+  return (
+    <Card flush title="Today" actions={<span className="muted small">{label}</span>}>
+      {rows.length === 0 ? <Empty icon="users" title="No employees yet" action={<Link className="btn primary" to="/admin/employees">Add employees</Link>}>Add people to see who is in.</Empty> : (
+        <div className="roll">
+          {GROUPS.map((g) => {
+            const attention = (r: Row) => ((r.rec?.late_minutes ?? 0) > 0 || (!!r.rec && r.rec.review_status === 'pending') ? 0 : 1);
+            const list = rows.filter((r) => r.state === g.state).sort((x, y) => attention(x) - attention(y) || x.emp.name.localeCompare(y.emp.name));
+            if (!list.length) return null;
+            return (
+              <section key={g.state} aria-label={g.title}>
+                <h3 className="roll-h">{g.title} <span className="muted">{list.length}</span></h3>
+                <ul>{list.map(({ emp, rec, state }) => {
+                  const late = rec?.late_minutes ?? 0;
+                  const flagged = !!rec && (rec.in_flags.length + rec.out_flags.length > 0 || rec.review_status === 'pending');
+                  return (
+                    <li key={emp.id} className={`roll-row ${state}`}>
+                      <PersonCell name={emp.name} sub={emp.shift_name} />
+                      <div className="roll-state">
+                        {late > 0 && <Badge kind="warn">Late {late} min</Badge>}
+                        {flagged && <Badge kind="bad">Review</Badge>}
+                      </div>
+                      <div className="roll-time num">
+                        <span>{state === 'waiting' ? <span className="muted">No check-in</span> : state === 'in' ? <>In since <strong>{fmtTime(rec!.check_in_at, tz)}</strong></> : <><strong>{fmtTime(rec!.check_in_at, tz)}</strong> to <strong>{fmtTime(rec!.check_out_at, tz)}</strong> <span className="muted">({fmtMinutes(rec!.work_minutes)})</span></>}</span>
+                        {rec && <span className="cell-sub">{rec.site_name}</span>}
+                      </div>
+                    </li>
+                  );
+                })}</ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -39,7 +107,7 @@ function Chart({ s }: { s: Summary }) {
   const max = Math.max(1, ...s.byDay.map((d) => d.checkins));
   const summary = `Check-ins and late arrivals per day from ${s.from} to ${s.to}`;
   return (
-    <Card title="Check-ins per day" actions={<div className="legend" aria-label="Legend"><span><i />Check-ins</span><span><i className="late" />Late arrivals</span></div>}>
+    <Card title="Last 7 days" actions={<div className="legend" aria-label="Legend"><span><i />Check-ins</span><span><i className="late" />Late arrivals</span></div>}>
       <div className="stack-sm">
         <div className="chart" role="img" aria-label={summary + ': ' + s.byDay.map((d) => `${d.day} ${d.checkins} check-ins, ${d.late} late`).join('; ')}>
           {s.byDay.map((d) => (
@@ -71,12 +139,14 @@ export default function Dashboard() {
   const toast = useToast();
   const today = todayIn(tz);
   const from7 = addDaysStr(today, -6);
-  const [range, setRange] = useState<'today' | 'week'>('today');
   const day = useLoad<Summary>(`${A}/summary${qs({ from: today, to: today })}`);
   const week = useLoad<Summary>(`${A}/summary${qs({ from: from7, to: today })}`);
+  const emps = useLoad<{ items: Employee[] }>(`${A}/employees`);
+  const recs = useLoad<{ items: Rec[] }>(`${A}/checkins${qs({ from: today, to: today, kind: 'attendance', limit: 500 })}`);
   const attempts = useLoad<{ items: Attempt[] }>(`${A}/attempts`);
   const anomalies = useLoad<{ items: Anomaly[] }>(`${A}/ai/anomalies`);
   const [running, setRunning] = useState(false);
+  const rows = useMemo(() => (emps.data && recs.data ? buildRoster(emps.data.items, recs.data.items) : null), [emps.data, recs.data]);
 
   async function run() {
     setRunning(true);
@@ -84,18 +154,15 @@ export default function Dashboard() {
       const jobs = await api<Record<string, unknown>>(`${A}/jobs/run`, { method: 'POST', body: {} });
       const parts = Object.entries(jobs).map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${String(v)}`);
       toast(parts.length ? `Automation finished (${parts.join(', ')})` : 'Automation finished, nothing to do');
-      day.reload(); week.reload(); attempts.reload();
+      day.reload(); week.reload(); attempts.reload(); recs.reload();
     } catch (e) { toast(errMsg(e), 'bad'); } finally { setRunning(false); }
   }
 
-  const cur = range === 'today' ? day : week;
   return (
-    <Page title="Overview" subtitle="Attendance across all sites." actions={<Button onClick={() => void run()} busy={running}><Icon name="bolt" size={16} />Run automation now</Button>}>
-      <div className="section-head">
-        <h2>{range === 'today' ? <>Today <span className="muted small">({today})</span></> : <>Last 7 days <span className="muted small">({from7} to {today})</span></>}</h2>
-        <Segmented label="Time range" value={range} onChange={setRange} options={[{ value: 'today', label: 'Today' }, { value: 'week', label: 'Last 7 days' }]} />
-      </div>
-      <Async loading={cur.loading} error={cur.error} hasData={!!cur.data}>{cur.data && <Stats s={cur.data} />}</Async>
+    <Page title="Overview" actions={<Button onClick={() => void run()} busy={running}><Icon name="bolt" size={16} />Run automation now</Button>}>
+      <Async loading={day.loading || emps.loading || recs.loading} error={day.error ?? emps.error ?? recs.error} hasData={!!(day.data && rows)}>
+        {day.data && rows && <><Lead rows={rows} s={day.data} /><RollCall rows={rows} tz={tz} today={today} /></>}
+      </Async>
       {week.data && <Chart s={week.data} />}
 
       <Card title="Rejected or flagged attempts" flush actions={<Link to="/admin/records?flagged=1">All flagged records</Link>}>

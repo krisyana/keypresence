@@ -12,7 +12,7 @@ const applied = await migrate(db);
 if (applied.length) console.log(`migrations applied: ${applied.join(', ')}`);
 const deps = { db, config, clock: () => new Date() };
 if (process.env.SEED_DEMO === '1' && (await db.query<{ n: number }>('SELECT count(*)::int AS n FROM users'))[0]!.n === 0) {
-  const r = await seedDemo(deps);
+  const r = await seedDemo(deps, { today: process.env.SEED_TODAY !== '0' });
   console.log(`Seeded demo data. Sign in as ${r.adminEmail} or ${r.employees[0]} with password ${r.password} (fictional, demo only)`);
 }
 const app = createApp(deps, { webDir: join(process.cwd(), 'dist', 'web') });

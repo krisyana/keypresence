@@ -24,7 +24,7 @@ function rng(seed: number) {
 
 export interface SeedResult { adminEmail: string; password: string; employees: string[]; siteIds: string[] }
 
-export async function seedDemo(deps: Deps, opts: { history?: boolean } = {}): Promise<SeedResult> {
+export async function seedDemo(deps: Deps, opts: { history?: boolean; today?: boolean } = {}): Promise<SeedResult> {
   const { db, clock } = deps;
   const now = clock();
   const tz = 'Asia/Jakarta';
@@ -82,6 +82,25 @@ export async function seedDemo(deps: Deps, opts: { history?: boolean } = {}): Pr
           [e.id, hq, day, inAt, outAt, -6.175392 + jitter(), 106.827153 + jitter(), forgot ? null : -6.175392 + jitter(), forgot ? null : 106.827153 + jitter(),
             flagged ? ['LOW_ACCURACY'] : [], forgot ? ['AUTO_CLOSED'] : [], flagged || forgot ? 'pending' : 'none', forgot ? 'auto' : 'user', e.shift.id,
             m.lateMinutes, m.overtimeMinutes, m.workMinutes]);
+      }
+    }
+  }
+  if (opts.today) {
+    // Make the overview alive in a demo: people whose shift has started are already checked in; finished shifts are closed.
+    const rand = rng(7);
+    const today = localParts(now, tz).day;
+    if (isoDowOfDay(today) <= 5) {
+      for (const e of emp) {
+        const start = shiftStartUtc(e.shift, today, tz), end = shiftEndUtc(e.shift, today, tz);
+        const late = rand() < 0.25;
+        const inAt = new Date(start.getTime() + (late ? 14 + Math.floor(rand() * 30) : Math.floor(rand() * 8) - 10) * 60000);
+        if (inAt > now || rand() < 0.1) continue;
+        const outAt = end < now ? new Date(end.getTime() + Math.floor(rand() * 10) * 60000) : null;
+        const m = computeMetrics(e.shift, inAt, outAt ?? now, tz);
+        await db.query(
+          `INSERT INTO checkins(user_id, site_id, kind, status, day, check_in_at, check_out_at, in_lat, in_lng, in_accuracy_m, in_distance_m, in_flags, out_flags, review_status, shift_id, late_minutes)
+           VALUES ($1,$2,'attendance',$3,$4,$5,$6,-6.175392,106.827153,12.5,18.2,'{}','{}','none',$7,$8)`,
+          [e.id, hq, outAt ? 'closed' : 'open', today, inAt, outAt, e.shift.id, m.lateMinutes]);
       }
     }
   }
