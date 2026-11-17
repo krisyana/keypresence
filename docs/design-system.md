@@ -57,3 +57,7 @@ Written with the `frontend-design` and `emil-design-eng` skills (installed in `.
 - **Job:** find the records that need a decision, act on them, export when asked.
 - **Layout:** quick views first (All records, Needs review with a live count, Flagged), the five secondary filters and the coordinates option tucked in a Filters disclosure, rows grouped under a day heading instead of a repeated Date column, one "Needs attention" column instead of separate Flags and Status columns, and a quiet Details action. Export CSV moved to the page actions.
 - **Tables app-wide:** column headers are sentence case instead of all caps.
+
+## People, Sites, Shifts, Corrections
+
+Same rules, applied page by page: controls on the page instead of a card toolbar (People: search plus an Everyone/Active/Inactive switch), tables that show only what needs attention (People lists Admin, Inactive and No location consent, never "Employee" or "Active" on every row), and settings written as sentences a person can read ("Rejects check-ins more than 120 m from the site. GPS accuracy must be within 50 m."). Small caps labels are gone app-wide, including sidebar group names and modal section headings. Settings, Ask and Audit log are unchanged apart from that.

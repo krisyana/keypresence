@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { api } from '../api';
 import { Badge, Button, Card, Empty, Field, Icon, Modal, Page, Alert, fmtDateTime, useToast } from '../ui';
-import { A, Async, PersonCell, errMsg, fieldErrors, useLoad, useOrgTz, type Employee, type Shift } from './shared';
+import { A, Async, PersonCell, Segmented, errMsg, fieldErrors, useLoad, useOrgTz, type Employee, type Shift } from './shared';
 
 type Editing = { mode: 'create' } | { mode: 'edit'; emp: Employee } | null;
 
@@ -41,6 +41,7 @@ function EmployeeForm({ editing, shifts, onClose, onSaved }: { editing: NonNulla
         <Field label="Role" error={fe.role}>{(p) => <select {...p} value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'employee')}><option value="employee">Employee</option><option value="admin">Admin</option></select>}</Field>
         <Field label="Shift" error={fe.shiftId}>{(p) => <select {...p} value={shiftId} onChange={(e) => setShiftId(e.target.value)}><option value="">No shift</option>{shifts.filter((s) => s.active || s.id === shiftId).map((s) => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>)}</select>}</Field>
       </div>
+      {emp && <p className="small muted">Shown to the AI assistant as <span className="mono">{emp.alias}</span>. Consent {emp.location_consent_at ? 'given' : 'not given yet'}.</p>}
       {emp && <label className="check"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Active</label>}
       <Field label={emp ? 'New password' : 'Password'} hint={emp ? 'Optional. Changing it signs the person out everywhere.' : 'At least 10 characters.'} error={fe.password}>
         {(p) => <input {...p} type="password" autoComplete="new-password" minLength={10} maxLength={200} required={!emp} value={password} onChange={(e) => setPassword(e.target.value)} />}
@@ -67,34 +68,41 @@ export default function Employees() {
     return (list.data?.items ?? []).filter((e) => (!q || e.name.toLowerCase().includes(q) || e.email.toLowerCase().includes(q)) && (!status || (status === 'active') === e.active));
   }, [list.data, search, status]);
 
+  const all = list.data?.items ?? [];
+  const noConsent = all.filter((e) => e.active && e.role === 'employee' && !e.location_consent_at).length;
+  const subtitle = all.length === 0 ? 'Everyone who can check in, and their shifts.' : `${all.filter((e) => e.active).length} active of ${all.length}. ${noConsent === 0 ? 'Everyone has agreed to location use.' : `${noConsent} ${noConsent === 1 ? 'has' : 'have'} not agreed to location use yet.`}`;
+
   return (
-    <Page title="People" subtitle="Everyone who can check in, and their shifts." actions={<Button variant="primary" onClick={() => setEditing({ mode: 'create' })}><Icon name="plus" size={16} />Add person</Button>}>
+    <Page title="People" subtitle={subtitle} actions={<Button variant="primary" onClick={() => setEditing({ mode: 'create' })}><Icon name="plus" size={16} />Add person</Button>}>
       <Async loading={list.loading} error={list.error} hasData={!!list.data}>
         {list.data && (list.data.items.length === 0 ? (
           <Card><Empty icon="users" title="No people yet" action={<Button variant="primary" onClick={() => setEditing({ mode: 'create' })}>Add person</Button>}>Add your team so they can check in.</Empty></Card>
         ) : (
-          <Card flush>
-            <div className="toolbar" role="search" aria-label="Filter people">
+          <>
+            <div className="list-controls" role="search" aria-label="Filter people">
               <Field label="Search">{(p) => <input {...p} type="search" placeholder="Name or email" value={search} onChange={(e) => setSearch(e.target.value)} />}</Field>
-              <Field label="Status">{(p) => <select {...p} value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>}</Field>
+              <Segmented label="Status" value={status as '' | 'active' | 'inactive'} onChange={setStatus} options={[{ value: '', label: 'Everyone' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]} />
             </div>
-            {rows.length === 0 ? <Empty icon="users" title="No matches">Try a different search.</Empty> : (
-              <div className="table-wrap"><table>
-                <caption className="sr-only">People</caption>
-                <thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Shift</th><th scope="col">Status</th><th scope="col">Location consent</th><th scope="col"><span>Alias</span><span className="th-sub">(shown to AI)</span></th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{rows.map((e) => (
-                  <tr key={e.id}>
-                    <td><PersonCell name={e.name} sub={e.email} /></td>
-                    <td>{e.role === 'admin' ? <Badge kind="info">Admin</Badge> : <Badge kind="">Employee</Badge>}</td>
-                    <td>{e.shift_name ?? <span className="muted">–</span>}</td>
-                    <td><Badge dot kind={e.active ? 'ok' : ''}>{e.active ? 'Active' : 'Inactive'}</Badge></td>
-                    <td>{e.location_consent_at ? <Badge dot kind="ok"><span title={`Given ${fmtDateTime(e.location_consent_at, tz)}`}>Given</span></Badge> : <Badge dot kind="warn">Not given</Badge>}</td>
-                    <td className="mono muted small">{e.alias}</td>
-                    <td><Button size="sm" onClick={() => setEditing({ mode: 'edit', emp: e })} aria-label={`Edit ${e.name}`}>Edit</Button></td>
-                  </tr>))}</tbody>
-              </table></div>
-            )}
-          </Card>
+            <Card flush>
+              {rows.length === 0 ? <Empty icon="users" title="No matches">Try a different search.</Empty> : (
+                <div className="table-wrap"><table>
+                  <caption className="sr-only">People</caption>
+                  <thead><tr><th scope="col">Person</th><th scope="col">Shift</th><th scope="col">Needs attention</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                  <tbody>{rows.map((e) => (
+                    <tr key={e.id}>
+                      <td><PersonCell name={e.name} sub={e.email} /></td>
+                      <td>{e.shift_name ?? <span className="muted">No shift</span>}</td>
+                      <td><div className="badges">
+                        {e.role === 'admin' && <Badge kind="info">Admin</Badge>}
+                        {!e.active && <Badge kind="">Inactive</Badge>}
+                        {e.active && e.role === 'employee' && !e.location_consent_at && <Badge dot kind="warn">No location consent</Badge>}
+                      </div></td>
+                      <td><Button size="sm" variant="ghost" onClick={() => setEditing({ mode: 'edit', emp: e })} aria-label={`Edit ${e.name}`}>Edit<Icon name="chevron" size={14} /></Button></td>
+                    </tr>))}</tbody>
+                </table></div>
+              )}
+            </Card>
+          </>
         ))}
       </Async>
       <Modal title={editing?.mode === 'edit' ? 'Edit person' : 'Add person'} open={!!editing} onClose={() => setEditing(null)}>

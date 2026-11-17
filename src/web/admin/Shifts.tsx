@@ -74,13 +74,13 @@ export default function Shifts() {
           <Card flush>
             <div className="table-wrap"><table>
               <caption className="sr-only">Shifts</caption>
-              <thead><tr><th scope="col">Shift</th><th scope="col">Hours</th><th scope="col">Work days</th><th scope="col">Grace</th><th scope="col">Overtime after</th><th scope="col">Auto-close after</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+              <thead><tr><th scope="col">Shift</th><th scope="col">When</th><th scope="col">Rules</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
               <tbody>{list.data.items.map((s) => (
                 <tr key={s.id}>
-                  <td><strong>{s.name}</strong></td><td className="num-cell">{s.startTime}–{s.endTime}</td><td>{dayRange(s.workDays)}</td>
-                  <td className="num-cell">{s.graceMinutes} min</td><td className="num-cell">{s.overtimeAfterMinutes} min</td><td className="num-cell">{s.autoCloseAfterMinutes} min</td>
-                  <td><Badge dot kind={s.active ? 'ok' : ''}>{s.active ? 'Active' : 'Inactive'}</Badge></td>
-                  <td><Button size="sm" aria-label={`Edit ${s.name}`} onClick={() => setEditing({ shift: s })}>Edit</Button></td>
+                  <td><strong>{s.name}</strong>{!s.active && <> <Badge kind="">Inactive</Badge></>}</td>
+                  <td className="num-cell">{s.startTime} to {s.endTime}<span className="cell-sub">{dayRange(s.workDays)}</span></td>
+                  <td className="wrap">Late after {s.graceMinutes} min grace.<span className="cell-sub">Overtime counts {s.overtimeAfterMinutes} min after the end. Open records close {s.autoCloseAfterMinutes} min after the end.</span></td>
+                  <td><Button size="sm" variant="ghost" aria-label={`Edit ${s.name}`} onClick={() => setEditing({ shift: s })}>Edit<Icon name="chevron" size={14} /></Button></td>
                 </tr>))}</tbody>
             </table></div>
           </Card>

@@ -41,7 +41,7 @@ function Item({ c, tz, onDone }: { c: Correction; tz: string; onDone: () => void
         <div className="stack">
           <div className="row between">
             <div>
-              <PersonCell name={c.user_name} sub={`${c.kind} at ${c.site_name} · requested ${fmtDateTime(c.created_at, tz)}`} />
+              <PersonCell name={c.user_name} sub={`${c.kind} at ${c.site_name}, requested ${fmtDateTime(c.created_at, tz)}`} />
             </div>
             <Badge dot kind={c.status === 'pending' ? 'warn' : c.status === 'approved' ? 'ok' : 'bad'}>{c.status === 'pending' ? 'Pending' : c.status === 'approved' ? 'Approved' : 'Rejected'}</Badge>
           </div>

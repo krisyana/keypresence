@@ -106,7 +106,7 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 }
 .sidebar .brand { color: #fff; padding: 4px 12px 20px; }
 .side-group { display: grid; gap: 2px; }
-.side-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--side-muted); padding: 16px 12px 6px; }
+.side-label { font-size: 0.8rem; font-weight: 600; color: var(--side-muted); padding: 16px 12px 6px; }
 .side-link {
   display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--side-ink); text-decoration: none;
   font-weight: 500; min-height: 44px; transition: background 0.12s, color 0.12s; position: relative;
@@ -176,7 +176,7 @@ a { color: var(--accent-text); text-underline-offset: 3px; }
 .page { display: grid; gap: 24px; padding-top: 16px; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
 .page-sub { margin-top: 4px; max-width: 60ch; }
-.section-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 650; }
+.section-title { font-size: 0.9rem; color: var(--muted); font-weight: 650; }
 
 /* ---------- Cards ---------- */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); }

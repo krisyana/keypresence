@@ -120,6 +120,8 @@ function QrView({ site, onClose }: { site: Site; onClose: () => void }) {
 
 const ENF_KIND: Record<string, 'ok' | 'warn' | ''> = { reject: 'ok', flag: 'warn', off: '' };
 
+const ruleText = (s: Site) => s.enforcement === 'reject' ? `Rejects check-ins more than ${s.radiusM} m from the site.` : s.enforcement === 'flag' ? `Accepts check-ins more than ${s.radiusM} m away, but flags them for review.` : `Fence of ${s.radiusM} m is not enforced.`;
+
 export default function Sites() {
   const toast = useToast();
   const list = useLoad<{ items: Site[] }>(`${A}/sites`);
@@ -136,16 +138,14 @@ export default function Sites() {
               <Card flush>
                 <div className="table-wrap"><table>
                   <caption className="sr-only">Sites and geofences</caption>
-                  <thead><tr><th scope="col">Site</th><th scope="col">Geofence <span className="th-sub">radius · max GPS accuracy</span></th><th scope="col">Outside the fence</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                  <thead><tr><th scope="col">Site</th><th scope="col">Check-in rule</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
                   <tbody>{list.data.items.map((s) => (
                     <tr key={s.id}>
-                      <td><strong>{s.name}</strong></td>
-                      <td className="num-cell">{s.radiusM} m · ±{s.maxAccuracyM} m</td>
-                      <td><Badge dot kind={ENF_KIND[s.enforcement]}>{ENFORCEMENT_LABEL[s.enforcement]}</Badge></td>
-                      <td><Badge dot kind={s.active ? 'ok' : ''}>{s.active ? 'Active' : 'Inactive'}</Badge></td>
-                      <td><div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+                      <td><strong>{s.name}</strong>{!s.active && <> <Badge kind="">Inactive</Badge></>}</td>
+                      <td className="wrap"><span className="rule-main">{ruleText(s)}</span><span className="cell-sub">{s.enforcement === 'off' ? 'Only the QR code is checked.' : `GPS accuracy must be within ${s.maxAccuracyM} m.`}</span></td>
+                      <td><div className="row" style={{ gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
                         <Button size="sm" aria-label={`QR code for ${s.name}`} onClick={() => setQrSite(s)}><Icon name="qr" size={16} />QR code</Button>
-                        <Button size="sm" aria-label={`Edit ${s.name}`} onClick={() => setEditing({ site: s })}>Edit</Button>
+                        <Button size="sm" variant="ghost" aria-label={`Edit ${s.name}`} onClick={() => setEditing({ site: s })}>Edit</Button>
                       </div></td>
                     </tr>))}</tbody>
                 </table></div>
