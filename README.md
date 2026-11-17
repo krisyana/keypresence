@@ -53,6 +53,10 @@ All names are invented and `.test` is a reserved domain. The password is a demo 
 - **Automation.** Late/overtime from shift rules, absence detection, auto-closing forgotten check-outs, reminders, daily and weekly summaries, retention. All idempotent; see `src/server/jobs/index.ts` and `tests/jobs.test.ts`.
 - **AI assistant (admin only).** Natural-language questions and anomaly explanations. The model never sees data or writes SQL: a question becomes a validated JSON plan, run as fixed parameterised SQL in a read-only transaction; employees appear as aliases; output is scanned for PII ([ADR-0007](docs/adr/0007-ai-guardrails.md)). Works offline with a rule-based planner; an LLM planner is optional.
 
+## Shared UI kit
+
+Buttons and dialogs come from `@kit/ui`, the design-system package of [web-platform-kit](https://github.com/krisyana/web-platform-kit). It is not on a registry, so its built output (v0.3.0, commit 16b011f) is vendored in [`vendor/kit-ui`](vendor/kit-ui) and installed as a `file:` dependency. The kit's `--kit-*` tokens are mapped onto this app's palette in `src/web/theme.css`. Kit toasts and form fields are not used: the app's own versions add a success state and a render-prop field wiring that the tests rely on.
+
 ## Architecture
 
 ```
@@ -103,6 +107,7 @@ docs/            requirements, ADRs, ai-usage, STATUS, screenshots
 migrations/      SQL migrations
 src/server/      API, domain rules, jobs, AI layer, seed
 src/web/         PWA (employee/ and admin/ screens)
+vendor/kit-ui/   vendored build of @kit/ui (Button, Dialog)
 tests/ e2e/      Vitest and Playwright
 scripts/         seed, bench, mutation check, icons, screenshots
 ```

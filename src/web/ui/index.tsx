@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { Button as KitButton, Dialog as KitDialog } from '@kit/ui';
 import { Icon, type IconName } from './icons';
 export { Icon } from './icons';
 export type { IconName } from './icons';
@@ -21,11 +22,12 @@ export function Badge({ kind = 'info', dot, children }: { kind?: 'info' | 'ok' |
   return <span className={`badge ${kind}`}>{dot && <i className="dot" aria-hidden="true" />}{children}</span>;
 }
 
-export function Button({ variant, size, busy, children, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'danger'; size?: 'sm' | 'big'; busy?: boolean }) {
+/** Our Button is the kit's Button (busy stays focusable and ignores clicks, aria-busy) with KeyPresence styling on top. */
+export function Button({ variant, size, busy, children, ...p }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & { className?: string; variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; size?: 'sm' | 'big'; busy?: boolean }) {
   return (
-    <button {...p} disabled={p.disabled || busy} className={['btn', variant, size, p.className].filter(Boolean).join(' ')} type={p.type ?? 'button'}>
+    <KitButton {...p} variant={variant === 'ghost' || !variant ? 'secondary' : variant} busy={busy} className={['btn', variant, size, p.className].filter(Boolean).join(' ')}>
       {busy && <span className="spinner" aria-hidden="true" />}{children}
-    </button>
+    </KitButton>
   );
 }
 
@@ -43,19 +45,17 @@ export function Field({ label, hint, error, children }: { label: string; hint?: 
   );
 }
 
+/** Modal on the kit's Dialog (native <dialog>: focus trap, Esc, focus restore, backdrop click, labelled by the title). */
 export function Modal({ title, open, onClose, children }: { title: string; open: boolean; onClose: () => void; children: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
   return (
-    <dialog ref={ref} aria-label={title} onClose={onClose} onCancel={onClose}>
-      <div className="modal-head"><h2>{title}</h2><button type="button" className="icon-btn" aria-label="Close" onClick={onClose}><Icon name="x" size={18} /></button></div>
-      {open && children}
-    </dialog>
+    <KitDialog open={open} onClose={onClose} title={title}>
+      {open && (
+        <>
+          <button type="button" className="icon-btn modal-x" aria-label="Close" onClick={onClose}><Icon name="x" size={18} /></button>
+          {children}
+        </>
+      )}
+    </KitDialog>
   );
 }
 

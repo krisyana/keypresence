@@ -31,3 +31,7 @@ The finding that shapes the design: gold cannot be text or a thin line on a ligh
 - axe-core scans 13 pages in light and dark (`npm run test:e2e`): no serious or critical violations.
 
 Not verified: colour-blindness simulation, forced-colors/high-contrast mode, and real-device rendering [UNVERIFIED].
+
+## Buttons and dialogs
+
+`Button` and `Modal` wrap `@kit/ui`'s `Button` and `Dialog` (see `vendor/kit-ui/README.md`). The kit gives `aria-busy` buttons that stay focusable and ignore clicks while busy, and a native `<dialog>` labelled by its title with backdrop-click close. Variants: primary (gold fill), secondary, ghost, danger (outline); sizes: default, sm, big. Hover, pressed, busy and focus states are defined in `theme.css`.
