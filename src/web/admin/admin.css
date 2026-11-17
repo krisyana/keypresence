@@ -44,9 +44,9 @@ details.info > p { margin-top: 4px; color: var(--muted); font-size: 0.85rem; max
 .chart-x { font-size: 0.75rem; color: var(--muted); }
 
 /* Anomaly / severity cards */
-.sev { display: flex; gap: 12px; padding: 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); align-items: flex-start; }
-.sev.warn { background: var(--warn-soft); color: var(--warn-soft-ink); border-color: transparent; }
-.sev.info { background: var(--accent-soft); color: var(--accent-soft-ink); border-color: transparent; }
+.sev { display: flex; gap: 12px; padding: 4px 0 4px 16px; border-left: 3px solid var(--input-border); align-items: flex-start; }
+.sev.warn { border-left-color: var(--accent-edge); }
+.sev.warn > svg { color: var(--warn-soft-ink); }
 .sev > svg { flex: none; margin-top: 2px; }
 .sev p { margin: 2px 0 0; }
 .sev details summary { cursor: pointer; font-size: 0.85rem; }
@@ -65,8 +65,8 @@ details.info > p { margin-top: 4px; color: var(--muted); font-size: 0.85rem; max
 .section-h .stat-icon { margin: 0; width: 32px; height: 32px; border-radius: 10px; }
 
 /* Ask */
-.bubble-q { justify-self: end; background: var(--accent); color: var(--accent-ink); padding: 10px 16px; border-radius: 16px 16px 4px 16px; max-width: 80%; }
-.answer-text { font-size: 1.15rem; line-height: 1.5; }
+.asked { margin: 0; }
+.answer-text { font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 1.5rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; max-width: 36ch; text-wrap: balance; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chips .btn { border-radius: 999px; font-weight: 500; }
 
@@ -120,3 +120,10 @@ details.info > p { margin-top: 4px; color: var(--muted); font-size: 0.85rem; max
 .list-controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .list-controls .field { flex: 1 1 240px; max-width: 360px; }
 .rule-main { display: block; }
+
+/* Settings: a heading and a sentence on the left, the fields on the right. */
+.set-list { display: grid; }
+.set-section { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(0, 2.4fr); gap: 24px; padding: 24px; }
+.set-section + .set-section { border-top: 1px solid var(--border); }
+.set-intro { display: grid; gap: 4px; align-content: start; }
+@media (max-width: 800px) { .set-section { grid-template-columns: 1fr; gap: 12px; padding: 20px 16px; } }

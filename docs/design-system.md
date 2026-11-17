@@ -60,4 +60,10 @@ Written with the `frontend-design` and `emil-design-eng` skills (installed in `.
 
 ## People, Sites, Shifts, Corrections
 
-Same rules, applied page by page: controls on the page instead of a card toolbar (People: search plus an Everyone/Active/Inactive switch), tables that show only what needs attention (People lists Admin, Inactive and No location consent, never "Employee" or "Active" on every row), and settings written as sentences a person can read ("Rejects check-ins more than 120 m from the site. GPS accuracy must be within 50 m."). Small caps labels are gone app-wide, including sidebar group names and modal section headings. Settings, Ask and Audit log are unchanged apart from that.
+Same rules, applied page by page: controls on the page instead of a card toolbar (People: search plus an Everyone/Active/Inactive switch), tables that show only what needs attention (People lists Admin, Inactive and No location consent, never "Employee" or "Active" on every row), and settings written as sentences a person can read ("Rejects check-ins more than 120 m from the site. GPS accuracy must be within 50 m."). Small caps labels are gone app-wide, including sidebar group names and modal section headings.
+
+## Settings, Ask, Audit log
+
+- **Settings:** one card with each group as a heading plus a one-line explanation on the left and its fields on the right, instead of four cards with icon squares. The sticky save bar stays.
+- **Ask:** the answer is the serif moment (the same voice as the Overview and employee home); the question becomes a small "You asked" line instead of a chat bubble; anomalies are plain entries with a left rule instead of coloured boxes.
+- **Audit log:** search on the page, entries grouped by day, three columns (time and person, what happened, details).

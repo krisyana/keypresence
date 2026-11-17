@@ -43,7 +43,7 @@ export default function Ask() {
       <div aria-live="polite" className="stack">
         {res && (
           <>
-            <div className="bubble-q">{asked}</div>
+            <p className="asked small muted">You asked: {asked}</p>
             <section aria-label="Answer">
               <Card>
                 <div className="stack-sm">
