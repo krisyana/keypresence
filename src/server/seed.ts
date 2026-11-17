@@ -98,9 +98,9 @@ export async function seedDemo(deps: Deps, opts: { history?: boolean; today?: bo
         const outAt = end < now ? new Date(end.getTime() + Math.floor(rand() * 10) * 60000) : null;
         const m = computeMetrics(e.shift, inAt, outAt ?? now, tz);
         await db.query(
-          `INSERT INTO checkins(user_id, site_id, kind, status, day, check_in_at, check_out_at, in_lat, in_lng, in_accuracy_m, in_distance_m, in_flags, out_flags, review_status, shift_id, late_minutes)
-           VALUES ($1,$2,'attendance',$3,$4,$5,$6,-6.175392,106.827153,12.5,18.2,'{}','{}','none',$7,$8)`,
-          [e.id, hq, outAt ? 'closed' : 'open', today, inAt, outAt, e.shift.id, m.lateMinutes]);
+          `INSERT INTO checkins(user_id, site_id, kind, status, day, check_in_at, check_out_at, in_lat, in_lng, in_accuracy_m, in_distance_m, in_flags, out_flags, review_status, shift_id, late_minutes, overtime_minutes, work_minutes)
+           VALUES ($1,$2,'attendance',$3,$4,$5,$6,-6.175392,106.827153,12.5,18.2,'{}','{}','none',$7,$8,$9,$10)`,
+          [e.id, hq, outAt ? 'closed' : 'open', today, inAt, outAt, e.shift.id, m.lateMinutes, outAt ? m.overtimeMinutes : null, outAt ? m.workMinutes : null]);
       }
     }
   }
