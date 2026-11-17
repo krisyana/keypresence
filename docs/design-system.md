@@ -51,3 +51,9 @@ Written with the `frontend-design` and `emil-design-eng` skills (installed in `.
 - **Job:** at the door, check in or out in two taps and see the current state.
 - **Layout:** one flat navy panel (no gradient wash): greeting and clock, a serif status sentence ("You have been in since 09:15." / "You finished at 17:00." / "You are not checked in."), the one gold action, and the shift as a quiet line. Recent activity is a plain divided list (day, site, badges, times, worked time) without icon tiles or capitalised day labels.
 - **Interaction:** the big button compresses to 0.98 on press, as `emil-design-eng` recommends; no entrance animations.
+
+## Records: design plan
+
+- **Job:** find the records that need a decision, act on them, export when asked.
+- **Layout:** quick views first (All records, Needs review with a live count, Flagged), the five secondary filters and the coordinates option tucked in a Filters disclosure, rows grouped under a day heading instead of a repeated Date column, one "Needs attention" column instead of separate Flags and Status columns, and a quiet Details action. Export CSV moved to the page actions.
+- **Tables app-wide:** column headers are sentence case instead of all caps.

@@ -100,3 +100,18 @@ details.info > p { margin-top: 4px; color: var(--muted); font-size: 0.85rem; max
 .roll-state { display: flex; gap: 6px; flex-wrap: wrap; }
 .roll-time { text-align: right; display: grid; justify-items: end; }
 @media (max-width: 720px) { .roll-row { grid-template-columns: 1fr auto; } .roll-state { grid-column: 1 / -1; order: 3; } .roll-h, .roll-row { padding-left: 16px; padding-right: 16px; } }
+
+/* Records: quick views first, filters tucked away, rows grouped by day. */
+.rec-controls { display: grid; gap: 12px; justify-items: start; }
+.filters-box { width: 100%; }
+.filters-box > summary { display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; font-weight: 600; color: var(--muted); }
+.filters-box > summary:hover { color: var(--text); }
+.filters-box[open] { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 20px 16px; }
+.filters-box form { display: grid; gap: 12px; }
+.rec-table .day-row th { background: var(--surface); color: var(--text); font-size: 0.95rem; font-weight: 650; padding: 14px 16px 8px; border-bottom: 1px solid var(--border); }
+.rec-table tbody + tbody .day-row th { border-top: 1px solid var(--border); }
+.filters-box > summary { list-style: none; gap: 8px; }
+.filters-box > summary::-webkit-details-marker { display: none; }
+.filters-box > summary::before { content: ''; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s ease-out; margin-right: 4px; }
+.filters-box[open] > summary::before { transform: rotate(45deg); }
+.filters-box .form-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }

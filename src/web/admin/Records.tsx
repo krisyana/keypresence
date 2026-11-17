@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { api, qs } from '../api';
 import { isoToZonedInput, zonedInputToIso } from '../tz';
 import { Alert, Badge, Button, Card, Empty, Field, Icon, Modal, Page, flagLabel, fmtDateTime, fmtMinutes, fmtTime, useToast } from '../ui';
-import { A, Async, Confirm, PersonCell, errMsg, fieldErrors, KIND_LIST, fmtDist, useLoad, useOrgTz, type Employee, type Site } from './shared';
+import { A, Async, Confirm, PersonCell, Segmented, errMsg, fieldErrors, KIND_LIST, fmtDist, useLoad, useOrgTz, type Employee, type Site } from './shared';
 
 interface Rec {
   id: string; user_id: string; user_name: string; user_email: string; site_name: string; kind: string; subject_ref: string | null; day: string; status: string;
@@ -20,9 +20,9 @@ function reviewBadge(r: Rec['review_status']) {
 const flagKind = (f: string) => (f === 'ADMIN_OVERRIDE' ? 'info' : 'warn') as 'info' | 'warn';
 function Flags({ r }: { r: Rec }) {
   const all = [...new Set([...r.in_flags, ...r.out_flags])].filter((f) => f !== 'ADMIN_OVERRIDE');
-  if (!all.length) return <span className="muted">–<span className="sr-only">No flags</span></span>;
+  if (!all.length) return null;
   const rest = all.slice(2);
-  return <div className="badges">{all.slice(0, 2).map((f) => <Badge key={f} kind={flagKind(f)}>{flagLabel(f)}</Badge>)}{rest.length > 0 && <Badge kind="" ><span title={rest.map(flagLabel).join(', ')}>+{rest.length}<span className="sr-only"> more: {rest.map(flagLabel).join(', ')}</span></span></Badge>}</div>;
+  return <>{all.slice(0, 2).map((f) => <Badge key={f} kind={flagKind(f)}>{flagLabel(f)}</Badge>)}{rest.length > 0 && <Badge kind="" ><span title={rest.map(flagLabel).join(', ')}>+{rest.length}<span className="sr-only"> more: {rest.map(flagLabel).join(', ')}</span></span></Badge>}</>;
 }
 const isOverride = (r: Rec) => !!r.override_reason || r.in_flags.includes('ADMIN_OVERRIDE') || r.out_flags.includes('ADMIN_OVERRIDE');
 const flagBadges = (fl: string[]) => (fl.length ? <div className="badges">{fl.map((f) => <Badge key={f} kind={flagKind(f)}>{flagLabel(f)}</Badge>)}</div> : <span className="muted">None</span>);
@@ -168,42 +168,68 @@ export default function Records() {
   const exportHref = `${A}/checkins/export.csv${qs({ ...f, coords: coords ? '1' : '' })}`;
   const anyFilter = FILTERS.some((k) => f[k]);
 
-  return (
-    <Page title="Records" subtitle="Check-ins and check-outs across all sites." actions={<Button variant="primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} />Manual record</Button>}>
-      <Card flush>
-        <form className="toolbar" role="search" aria-label="Filter records" onSubmit={(e) => e.preventDefault()}>
-          <Field label="From">{(p) => <input {...p} type="date" value={f.from} onChange={(e) => set('from', e.target.value)} />}</Field>
-          <Field label="To">{(p) => <input {...p} type="date" value={f.to} onChange={(e) => set('to', e.target.value)} />}</Field>
-          <Field label="Site">{(p) => <select {...p} value={f.siteId} onChange={(e) => set('siteId', e.target.value)}><option value="">All sites</option>{sites.data?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</Field>
-          <Field label="Employee">{(p) => <select {...p} value={f.userId} onChange={(e) => set('userId', e.target.value)}><option value="">Everyone</option>{emps.data?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</Field>
-          <Field label="Kind">{(p) => <select {...p} value={f.kind} onChange={(e) => set('kind', e.target.value)}><option value="">All kinds</option>{KIND_LIST.map((k) => <option key={k}>{k}</option>)}</select>}</Field>
-          <Field label="Review">{(p) => <select {...p} value={f.review} onChange={(e) => set('review', e.target.value)}><option value="">Any</option><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="none">Not needed</option></select>}</Field>
-          <label className="check" style={{ minHeight: 44 }}><input type="checkbox" checked={f.flagged === '1'} onChange={(e) => set('flagged', e.target.checked ? '1' : '')} /> Flagged only</label>
-          {anyFilter && <Button onClick={() => setSp({}, { replace: true })}>Clear</Button>}
-          <span className="spacer" />
-          <label className="check" style={{ minHeight: 44 }}><input type="checkbox" checked={coords} onChange={(e) => setCoords(e.target.checked)} /> Include coordinates</label>
-          <a className="btn" href={exportHref} download onClick={() => toast(coords ? 'Export started. Coordinates export is audited.' : 'Export started', 'info')}><Icon name="download" size={16} />Export CSV</a>
-        </form>
-        {coords && <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)' }}><Alert kind="warn">Coordinates are personal data. This export is recorded in the audit log.</Alert></div>}
+  const pending = useLoad<{ total: number }>(`${A}/checkins${qs({ review: 'pending', limit: 1 })}`);
+  const view: 'pending' | 'flagged' | 'all' = f.review === 'pending' && !f.flagged ? 'pending' : f.flagged === '1' && !f.review ? 'flagged' : 'all';
+  const pickView = (v: 'pending' | 'flagged' | 'all') => setSp((p) => { const n = new URLSearchParams(p); n.delete('review'); n.delete('flagged'); n.delete('offset'); if (v === 'pending') n.set('review', 'pending'); if (v === 'flagged') n.set('flagged', '1'); return n; }, { replace: true });
+  const detailFilters = (['from', 'to', 'siteId', 'userId', 'kind'] as const).filter((k) => f[k]).length;
+  const dayHead = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(Date.UTC(y!, m! - 1, d!))); };
+  const groups = (list.data?.items ?? []).reduce<{ day: string; rows: Rec[] }[]>((acc, r) => { const g = acc[acc.length - 1]; if (g && g.day === r.day) g.rows.push(r); else acc.push({ day: r.day, rows: [r] }); return acc; }, []);
 
+  return (
+    <Page title="Records" subtitle="Check-ins and check-outs across all sites." actions={<>
+      <a className="btn" href={exportHref} download onClick={() => toast(coords ? 'Export started. Coordinates export is audited.' : 'Export started', 'info')}><Icon name="download" size={16} />Export CSV</a>
+      <Button variant="primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} />Manual record</Button>
+    </>}>
+      <div className="rec-controls">
+        <Segmented label="Show" value={view} onChange={pickView} options={[
+          { value: 'all', label: 'All records' },
+          { value: 'pending', label: pending.data ? `Needs review (${pending.data.total})` : 'Needs review' },
+          { value: 'flagged', label: 'Flagged' },
+        ]} />
+        <details className="filters-box" open={detailFilters > 0 || coords}>
+          <summary>{detailFilters > 0 ? `Filters (${detailFilters})` : 'Filters'}</summary>
+          <form role="search" aria-label="Filter records" onSubmit={(e) => e.preventDefault()}>
+            <div className="form-grid">
+              <Field label="From">{(p) => <input {...p} type="date" value={f.from} onChange={(e) => set('from', e.target.value)} />}</Field>
+              <Field label="To">{(p) => <input {...p} type="date" value={f.to} onChange={(e) => set('to', e.target.value)} />}</Field>
+              <Field label="Site">{(p) => <select {...p} value={f.siteId} onChange={(e) => set('siteId', e.target.value)}><option value="">All sites</option>{sites.data?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</Field>
+              <Field label="Employee">{(p) => <select {...p} value={f.userId} onChange={(e) => set('userId', e.target.value)}><option value="">Everyone</option>{emps.data?.items.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</Field>
+              <Field label="Kind">{(p) => <select {...p} value={f.kind} onChange={(e) => set('kind', e.target.value)}><option value="">All kinds</option>{KIND_LIST.map((k) => <option key={k}>{k}</option>)}</select>}</Field>
+            </div>
+            <div className="row between">
+              <label className="check" style={{ minHeight: 44 }}><input type="checkbox" checked={coords} onChange={(e) => setCoords(e.target.checked)} /> Include coordinates in the CSV export</label>
+              {anyFilter && <Button variant="ghost" onClick={() => setSp({}, { replace: true })}>Clear all filters</Button>}
+            </div>
+            {coords && <Alert kind="warn">Coordinates are personal data. This export is recorded in the audit log.</Alert>}
+          </form>
+        </details>
+      </div>
+
+      <Card flush>
         <Async loading={list.loading} error={list.error} hasData={!!list.data}>
           {list.data && (list.data.items.length === 0 ? <Empty icon="list" title="No records found" action={anyFilter ? <Button onClick={() => setSp({}, { replace: true })}>Clear filters</Button> : undefined}>{anyFilter ? 'No records match these filters.' : 'Check-ins will appear here.'}</Empty> : (
             <>
-              <div className="table-wrap"><table>
-                <caption className="sr-only">Attendance and check-in records</caption>
-                <thead><tr><th scope="col">Date</th><th scope="col">Employee</th><th scope="col">Site</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Worked</th><th scope="col">Flags</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
-                <tbody>{list.data.items.map((r) => (
-                  <tr key={r.id}>
-                    <td className="num-cell">{r.day}</td>
-                    <td><PersonCell name={r.user_name} /></td>
-                    <td>{r.site_name}{r.kind !== 'attendance' && <span className="cell-sub">{r.kind}{r.subject_ref ? `: ${r.subject_ref}` : ''}</span>}</td>
-                    <td className="num-cell">{fmtTime(r.check_in_at, tz)}{r.late_minutes ? <span className="cell-sub">{r.late_minutes} min late</span> : null}</td>
-                    <td className="num-cell">{r.check_out_at ? fmtTime(r.check_out_at, tz) : <Badge dot kind="info">Open</Badge>}</td>
-                    <td className="num-cell">{fmtMinutes(r.work_minutes)}{r.overtime_minutes ? <span className="cell-sub">+{r.overtime_minutes} min overtime</span> : null}</td>
-                    <td><Flags r={r} /></td>
-                    <td><div className="badges">{reviewBadge(r.review_status)}{isOverride(r) && <Badge kind="info">Override</Badge>}{r.closed_by === 'auto' && <Badge kind="warn">Auto-closed</Badge>}</div></td>
-                    <td><Button size="sm" aria-label={`Details for ${r.user_name} on ${r.day}`} onClick={() => setSel(r)}>Details</Button></td>
-                  </tr>))}</tbody>
+              <div className="table-wrap"><table className="rec-table">
+                <caption className="sr-only">Attendance and check-in records, grouped by day</caption>
+                <thead><tr><th scope="col">Employee</th><th scope="col">In</th><th scope="col">Out</th><th scope="col">Worked</th><th scope="col">Needs attention</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
+                {groups.map((g) => (
+                  <tbody key={g.day}>
+                    <tr className="day-row"><th scope="colgroup" colSpan={6}>{dayHead(g.day)} <span className="muted">{g.rows.length}</span></th></tr>
+                    {g.rows.map((r) => (
+                      <tr key={r.id}>
+                        <td><PersonCell name={r.user_name} sub={r.site_name + (r.kind !== 'attendance' ? `, ${r.kind}${r.subject_ref ? ` ${r.subject_ref}` : ''}` : '')} /></td>
+                        <td className="num-cell">{fmtTime(r.check_in_at, tz)}{r.late_minutes ? <span className="cell-sub">{r.late_minutes} min late</span> : null}</td>
+                        <td className="num-cell">{r.check_out_at ? fmtTime(r.check_out_at, tz) : <Badge dot kind="ok">Open</Badge>}</td>
+                        <td className="num-cell">{fmtMinutes(r.work_minutes)}{r.overtime_minutes ? <span className="cell-sub">+{r.overtime_minutes} min overtime</span> : null}</td>
+                        <td><div className="badges">
+                          {r.review_status === 'pending' && <Badge dot kind="warn">Needs review</Badge>}
+                          <Flags r={r} />
+                          {isOverride(r) && <Badge kind="info">Override</Badge>}
+                        </div></td>
+                        <td><Button size="sm" variant="ghost" aria-label={`Details for ${r.user_name} on ${r.day}`} onClick={() => setSel(r)}>Details<Icon name="chevron" size={14} /></Button></td>
+                      </tr>))}
+                  </tbody>
+                ))}
               </table></div>
               <div className="card-foot">
                 <span className="small muted" aria-live="polite">Showing {offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>

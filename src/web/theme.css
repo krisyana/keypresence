@@ -249,7 +249,7 @@ textarea { min-height: 96px; resize: vertical; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td { text-align: left; padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); background: var(--surface-2); white-space: nowrap; font-weight: 650; }
+th { font-size: 0.82rem; color: var(--muted); background: var(--surface-2); white-space: nowrap; font-weight: 600; }
 td { white-space: nowrap; }
 td.wrap, td .wrap, td details, td p { white-space: normal; min-width: 220px; }
 tbody tr { transition: background 0.1s; }
