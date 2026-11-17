@@ -45,3 +45,9 @@ Written with the `frontend-design` and `emil-design-eng` skills (installed in `.
 - **Removed:** nine stat tiles, the Today / Last 7 days toggle, icon-in-square decoration.
 - **Motion:** none added. Press feedback on buttons only; hover is gated behind `(hover: hover)`.
 - **Limit:** there is no leave model, so someone with no check-in is "Not in yet", never "Absent", and a weekend shows everyone as not in.
+
+## Employee home: design plan
+
+- **Job:** at the door, check in or out in two taps and see the current state.
+- **Layout:** one flat navy panel (no gradient wash): greeting and clock, a serif status sentence ("You have been in since 09:15." / "You finished at 17:00." / "You are not checked in."), the one gold action, and the shift as a quiet line. Recent activity is a plain divided list (day, site, badges, times, worked time) without icon tiles or capitalised day labels.
+- **Interaction:** the big button compresses to 0.98 on press, as `emil-design-eng` recommends; no entrance animations.

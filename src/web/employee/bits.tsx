@@ -52,6 +52,20 @@ const CSS = `
 .bullets{margin:0;padding:0;list-style:none;display:grid;gap:8px}
 .bullets li{display:flex;gap:10px;align-items:center}
 .bullets svg{color:var(--accent-text);flex:none}
+.home-panel{background:var(--hero-from);color:var(--hero-ink);border-radius:20px;padding:24px;display:grid;gap:20px}
+.home-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;opacity:.92}
+.home-clock{font-size:1.1rem;font-weight:600}
+.muted-ink{opacity:.65;font-weight:400}
+.home-sentence{font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;font-size:clamp(1.9rem,8vw,2.4rem);line-height:1.12;font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+.home-detail{margin-top:6px;opacity:.9}
+.home-shift{font-size:.85rem;opacity:.8}
+.home-panel .btn.big:active:not([aria-disabled='true']){transform:scale(.98)}
+.recent{list-style:none;margin:0;padding:0}
+.recent li{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);align-items:flex-start}
+.recent li:last-child{border-bottom:0;padding-bottom:0}
+.recent li:first-child{padding-top:0}
+.recent-main{display:grid;gap:4px;min-width:0}
+.recent-time{display:grid;justify-items:end;gap:2px;white-space:nowrap}
 .plain-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
 `;
 export function EmployeeStyles() { return <style>{CSS}</style>; }
