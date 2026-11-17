@@ -6,6 +6,7 @@
 - `npm run test:e2e`: demo flow (admin creates site and geofence, shows QR; employee accepted inside the fence, rejected outside; check-out; admin sees records, summary, AI answer, CSV), dark/mobile layout, axe scan of 13 pages in light and dark (no serious/critical).
 - `bash scripts/mutation-check.sh`: 14/14 guard mutations caught.
 - Concurrency (one open record under 8 simultaneous check-ins) passes on real PostgreSQL.
+- GitHub Actions `ci` workflow (typecheck, PGlite tests, Postgres 17 tests, e2e) passed on GitHub-hosted runners for commit 2eefb6b.
 
 ## Independent review (read-only subagent) and what was done
 Fixed, each with a test:
@@ -28,6 +29,5 @@ Accepted or open (not fixed):
 ## Not verified
 - Real phone: camera scanning, GPS accuracy, installing the PWA, QR print layout.
 - Live LLM planner (`AI_PROVIDER=anthropic`).
-- First GitHub Actions run (config written, never executed).
 - Legal sufficiency of the privacy design.
 - Multi-instance deployment behaviour (limiter and scheduler are per process).
