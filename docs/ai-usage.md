@@ -8,7 +8,7 @@ This repo was built in one Claude Code session (model: Claude Sonnet 5.5) acting
 | --- | --- | --- |
 | Research and requirements (`docs/requirements.md`) | Lead agent | Every non-goal states why; open questions each carry a working answer that the code then implements (or the doc was edited to match). |
 | ADRs 0001-0007 | Lead agent | After the code existed, ADR text was re-read against the code. Two mismatches were found and fixed (ADR-0005 repeated-coordinates rule, ADR-0007 `ai_min_group` setting that does not exist). |
-| Schema, domain rules, API, jobs, AI layer | Lead agent, test-first for the pure rules | 189 automated tests. Several tests were wrong, not the code, and were corrected after reading the failure (see below). |
+| Schema, domain rules, API, jobs, AI layer | Lead agent, test-first for the pure rules | Automated tests (189 when the backend was finished, 269 now). Several tests were wrong, not the code, and were corrected after reading the failure (see below). |
 | Employee screens | Subagent 1 (brief: exact files owned, API read from source, accessibility rules) | Lead reviewed its notes, applied one suggestion (`maxAccuracyM` in the rejection payload), ran the pages in Playwright, and looked at screenshots. |
 | Admin CMS screens | Subagent 2 (same style of brief) | Same, plus a layout fix (admin tab bar hid four pages on phones) and a chart caption fix found from screenshots. |
 | End-to-end and accessibility tests | Lead agent | The e2e test drives the real UI and API. The axe scan found no serious or critical issues on 13 pages in both themes. |
