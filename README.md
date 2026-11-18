@@ -10,6 +10,7 @@ Scan a site's daily signed QR code, prove you are inside its geofence, done. An 
 ![TypeScript](https://img.shields.io/badge/TypeScript-end%20to%20end-3178c6)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791)
 ![PWA](https://img.shields.io/badge/PWA-React%2019%20%2B%20Vite-242f40)
+[![License: MIT](https://img.shields.io/badge/license-MIT-cca43b)](LICENSE)
 
 <img src="docs/screenshots/admin-overview-light.png" alt="KeyPresence admin overview: a one-sentence summary, what needs a decision, and today's roll call" width="900">
 
@@ -141,3 +142,7 @@ vendor/kit-ui/   vendored build of @kit/ui (Button, Dialog)
 tests/ e2e/      Vitest and Playwright
 scripts/         seed, bench, mutation check, icons, screenshots
 ```
+
+## License
+
+[MIT](LICENSE). The vendored `@kit/ui` build in `vendor/kit-ui` is from the same author and also declares MIT.
